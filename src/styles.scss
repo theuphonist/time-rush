@@ -1,1 +1,23 @@
-/* You can add global styles to this file, and also import other style files */
+@import "primeng/resources/primeng.css";
+@import "primeng/resources/themes/aura-light-indigo/theme.css" not
+  (prefers-color-scheme: dark);
+@import "primeng/resources/themes/aura-dark-indigo/theme.css"
+  (prefers-color-scheme: dark);
+@import "primeflex/primeflex.css";
+@import "primeicons/primeicons.css";
+
+:root {
+  --base-x-padding-margin: 1.5rem;
+  --base-top-padding-margin: 3rem; // needed to clear status bar on mobile
+}
+
+body {
+  margin-left: var(--base-x-padding-margin);
+  margin-right: var(--base-x-padding-margin);
+  margin-top: 0;
+  margin-bottom: 0;
+}
+
+.mt-page-content {
+  margin-top: calc(var(--base-top-padding-margin) + 3.5rem);
+}
