@@ -6,6 +6,7 @@ import { InputNumberModule } from 'primeng/inputnumber';
 import { DropdownModule } from 'primeng/dropdown';
 import { PlayerNameWithIconComponent } from '../../shared/player-name-with-icon.component';
 import { PlayerColors, PlayerService } from '../../data-access/player.service';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'turnt-new-game-page',
@@ -17,6 +18,7 @@ import { PlayerColors, PlayerService } from '../../data-access/player.service';
     InputNumberModule,
     DropdownModule,
     PlayerNameWithIconComponent,
+    ButtonModule,
   ],
   template: `
     <turnt-header text="New Game" />
@@ -79,10 +81,20 @@ import { PlayerColors, PlayerService } from '../../data-access/player.service';
         />
       </div>
       }
+      <p-button
+        styleClass="w-full mt-2 h-3rem mb-2 surface-200 border-transparent text-500"
+        icon="pi pi-plus"
+      ></p-button>
       <small
-        ><span class="text-500">Drag players to set turn order.</span></small
+        ><span class="text-500"
+          >Drag and drop players to set turn order.</span
+        ></small
       >
     </div>
+
+    <p-button styleClass="w-full mt-6">
+      <div class="w-full font-semibold text-center">Let's go!</div></p-button
+    >
   `,
 })
 export class NewGamePageComponent {

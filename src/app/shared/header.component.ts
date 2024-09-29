@@ -10,7 +10,7 @@ import { Component, input } from '@angular/core';
     padding-right: var(--base-x-padding-margin);
     padding-top: var(--base-top-padding-margin);
     padding-bottom: 0.5rem;
-    backdrop-filter: blur(4px);
+    backdrop-filter: blur(5px);
   }`,
 })
 export class HeaderComponent {
