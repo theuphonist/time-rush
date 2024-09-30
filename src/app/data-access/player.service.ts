@@ -27,9 +27,5 @@ export class PlayerService {
   readonly players: WritableSignal<Player[]> = signal([
     { name: 'Player 1', color: PlayerColors.Red },
     { name: 'Player 2', color: PlayerColors.Blue },
-    { name: 'Player 3', color: PlayerColors.Violet },
-    { name: 'Player 4', color: PlayerColors.Green },
-    { name: 'Player 5', color: PlayerColors.Yellow },
-    { name: 'Player 6', color: PlayerColors.Orange },
   ]);
 }

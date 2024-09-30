@@ -1,11 +1,11 @@
 import { Component, inject } from '@angular/core';
-import { HeaderComponent } from '../../shared/header.component';
+import { HeaderComponent } from '../shared/header.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { DropdownModule } from 'primeng/dropdown';
-import { PlayerNameWithIconComponent } from '../../shared/player-name-with-icon.component';
-import { PlayerColors, PlayerService } from '../../data-access/player.service';
+import { PlayerNameWithIconComponent } from '../shared/player-name-with-icon.component';
+import { PlayerColors, PlayerService } from '../data-access/player.service';
 import { ButtonModule } from 'primeng/button';
 
 @Component({
@@ -104,8 +104,9 @@ export class NewGamePageComponent {
 
   gameName: string | undefined;
   turnLength: number | undefined;
-  selectedTimeUnits: string | undefined;
+
   readonly timeUnits: string[] = ['s', 'min'];
+  selectedTimeUnits: string | undefined = this.timeUnits[0];
 
   // make the PlayerColors enum available in component template
   readonly PlayerColors = PlayerColors;
