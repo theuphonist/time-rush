@@ -1,0 +1,9 @@
+{
+  "name": "Turnt",
+  "short_name": "Turnt",
+  "theme_color": "#000000",
+  "background_color": "#000000",
+  "display": "standalone",
+  "scope": "./",
+  "start_url": "./"
+}

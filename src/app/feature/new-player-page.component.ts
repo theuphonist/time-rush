@@ -16,7 +16,11 @@ import { ButtonModule } from 'primeng/button';
     PlayerIconComponent,
     ButtonModule,
   ],
-  template: `<turnt-header text="New Player" />
+  template: `<turnt-header
+      text="New Player"
+      alwaysSmall
+      routeToPreviousPage="new-game"
+    />
     <!-- Game name input -->
     <div class="mt-page-content">
       <label for="player-name"
@@ -41,7 +45,14 @@ import { ButtonModule } from 'primeng/button';
       <h3 class="text-600 text-lg font-semibold mt-0 mb-4">Player Color</h3>
       <div class="grid">
         @for (color of playerColorArray; track color) {
-        <div class="col-3 py-3" (click)="selectColor($event)">
+        <div
+          [class]="
+            'col-3 py-1 my-2 border-round ' +
+            (selectedColor === color ? 'selected' : '')
+          "
+          [id]="color"
+          (click)="selectColor($event)"
+        >
           <turnt-player-icon
             [playerColor]="color"
             class="flex justify-content-center"
@@ -51,11 +62,17 @@ import { ButtonModule } from 'primeng/button';
       </div>
     </div>
 
-    <p-button styleClass="w-full mt-6" [disabled]="!playerName">
+    <p-button
+      styleClass="w-full mt-6"
+      [disabled]="!playerName || !selectedColor"
+    >
       <div class="w-full font-semibold text-center">
         Create {{ playerName || 'Player' }}
       </div></p-button
     >`,
+  styles: `.selected {
+    outline: solid var(--surface-300);
+    }`,
 })
 export class NewPlayerPageComponent {
   playerName: string | undefined;
@@ -64,7 +81,18 @@ export class NewPlayerPageComponent {
   readonly PlayerColors = PlayerColors;
   readonly playerColorArray = Object.values(PlayerColors);
 
+  selectedColor: string | undefined | null;
+  readonly selectedColorStyle = '';
+
   selectColor(event: Event) {
-    console.dir(event);
+    let target = event.target as HTMLElement;
+
+    while (target.parentElement && !target.id) {
+      target = target.parentElement;
+    }
+
+    if (target.id) {
+      this.selectedColor = target.id;
+    }
   }
 }

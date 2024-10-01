@@ -7,6 +7,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { PlayerNameWithIconComponent } from '../shared/player-name-with-icon.component';
 import { PlayerColors, PlayerService } from '../data-access/player.service';
 import { ButtonModule } from 'primeng/button';
+import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'turnt-new-game-page',
@@ -19,6 +20,7 @@ import { ButtonModule } from 'primeng/button';
     DropdownModule,
     PlayerNameWithIconComponent,
     ButtonModule,
+    RouterLink,
   ],
   template: `
     <turnt-header text="New Game" />
@@ -81,17 +83,17 @@ import { ButtonModule } from 'primeng/button';
         />
       </div>
       }
-      <p-button
-        styleClass="w-full mt-2 h-3rem mb-2 surface-200 border-transparent text-500"
-        icon="pi pi-plus"
-      ></p-button>
+      <a
+        routerLink="/new-player"
+        class="block flex align-items-center justify-content-center w-full mt-2 h-3rem mb-2 surface-200 border-transparent border-round text-500 no-underline"
+        ><i class="pi pi-plus"></i
+      ></a>
       <small
         ><span class="text-500"
           >Drag and drop players to set turn order.</span
         ></small
       >
     </div>
-
     <p-button styleClass="w-full mt-6">
       <div class="w-full font-semibold text-center">Let's go!</div></p-button
     >
