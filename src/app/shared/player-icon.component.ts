@@ -7,6 +7,7 @@ import { Component, input } from '@angular/core';
   template: `
     <div
       class="border-circle border-400 border-3 h-3rem w-3rem inline-block"
+      [class.opacity-20]="disabled()"
       [style]="'background-color: ' + playerColor()"
     ></div>
   `,
@@ -14,4 +15,5 @@ import { Component, input } from '@angular/core';
 })
 export class PlayerIconComponent {
   playerColor = input.required<string>();
+  disabled = input<boolean>();
 }

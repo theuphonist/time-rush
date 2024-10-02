@@ -1,10 +1,11 @@
-import { Component } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { HeaderComponent } from '../shared/header.component';
-import { PlayerColors } from '../data-access/player.service';
+import { PlayerColors, PlayerService } from '../data-access/player.service';
 import { PlayerIconComponent } from '../shared/player-icon.component';
 import { ButtonModule } from 'primeng/button';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'turnt-new-player-page',
@@ -44,17 +45,18 @@ import { ButtonModule } from 'primeng/button';
     <div class="mt-5">
       <h3 class="text-600 text-lg font-semibold mt-0 mb-4">Player Color</h3>
       <div class="grid">
-        @for (color of playerColorArray; track color) {
+        @for (playerColor of playerColorArray(); track playerColor.value) {
         <div
           [class]="
             'col-3 py-1 my-2 border-round ' +
-            (selectedColor === color ? 'selected' : '')
+            (selectedColor === playerColor.value ? 'selected' : '')
           "
-          [id]="color"
+          [id]="playerColor.value"
           (click)="selectColor($event)"
         >
           <turnt-player-icon
-            [playerColor]="color"
+            [playerColor]="playerColor.value"
+            [disabled]="playerColor.disabled"
             class="flex justify-content-center"
           />
         </div>
@@ -65,6 +67,7 @@ import { ButtonModule } from 'primeng/button';
     <p-button
       styleClass="w-full mt-6"
       [disabled]="!playerName || !selectedColor"
+      (click)="createPlayer()"
     >
       <div class="w-full font-semibold text-center">
         Create {{ playerName || 'Player' }}
@@ -75,11 +78,24 @@ import { ButtonModule } from 'primeng/button';
     }`,
 })
 export class NewPlayerPageComponent {
+  private readonly playerService = inject(PlayerService);
+  private readonly router = inject(Router);
+
+  private readonly players = this.playerService.players;
+
   playerName: string | undefined;
 
   // make the PlayerColors enum available in component template
   readonly PlayerColors = PlayerColors;
-  readonly playerColorArray = Object.values(PlayerColors);
+  readonly disabledColors = computed(() =>
+    this.players().map((player) => player.color)
+  );
+  readonly playerColorArray = computed(() =>
+    Object.values(PlayerColors).map((color) => ({
+      value: color,
+      disabled: this.disabledColors().includes(color),
+    }))
+  );
 
   selectedColor: string | undefined | null;
   readonly selectedColorStyle = '';
@@ -94,5 +110,18 @@ export class NewPlayerPageComponent {
     if (target.id) {
       this.selectedColor = target.id;
     }
+  }
+
+  createPlayer(): void {
+    this.playerService.players.update((players) => {
+      players.push({
+        name: this.playerName!,
+        color: this.selectedColor!,
+      });
+
+      return players;
+    });
+
+    this.router.navigate(['new-game']);
   }
 }
