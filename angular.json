@@ -12,6 +12,9 @@
           "inlineTemplate": true,
           "skipTests": true,
           "flat": true
+        },
+        "@schematics/angular:service": {
+          "skipTests": true
         }
       },
       "root": "",

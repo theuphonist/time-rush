@@ -1,4 +1,10 @@
-import { Component, computed, inject } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  input,
+  numberAttribute,
+} from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { HeaderComponent } from '../shared/header.component';
@@ -8,7 +14,7 @@ import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
 
 @Component({
-  selector: 'turnt-new-player-page',
+  selector: 'turnt-edit-player-page',
   standalone: true,
   imports: [
     HeaderComponent,
@@ -18,7 +24,7 @@ import { Router } from '@angular/router';
     ButtonModule,
   ],
   template: `<turnt-header
-      text="New Player"
+      text="Edit Player"
       alwaysSmall
       routeToPreviousPage="new-game"
     />
@@ -66,24 +72,40 @@ import { Router } from '@angular/router';
 
     <p-button
       styleClass="w-full mt-6"
+      (click)="updatePlayer()"
       [disabled]="!playerName || !selectedColor"
-      (click)="createPlayer()"
     >
       <div class="w-full font-semibold text-center">
-        Create {{ playerName || 'Player' }}
+        Update {{ originalPlayer()?.display_name || 'Player' }}
+      </div></p-button
+    >
+    <p-button
+      styleClass="w-full mt-6"
+      severity="danger"
+      (click)="deletePlayer()"
+    >
+      <div class="w-full font-semibold text-center">
+        Delete {{ originalPlayer()?.display_name || 'Player' }}
       </div></p-button
     >`,
   styles: `.selected {
     outline: solid var(--surface-300);
     }`,
 })
-export class NewPlayerPageComponent {
+export class EditPlayerPageComponent {
   private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
 
-  private readonly players = this.playerService.players;
-
+  originalPlayerName: string | undefined;
   playerName: string | undefined;
+  selectedColor: string | undefined | null;
+
+  readonly playerId = input(0, { transform: numberAttribute });
+
+  private readonly players = this.playerService.players;
+  readonly originalPlayer = computed(() =>
+    this.playerService.players().find((player) => player.id === this.playerId())
+  );
 
   // make the PlayerColors enum available in component template
   readonly PlayerColors = PlayerColors;
@@ -98,7 +120,10 @@ export class NewPlayerPageComponent {
     }))
   );
 
-  selectedColor: string | undefined | null;
+  ngOnInit() {
+    this.playerName = this.originalPlayer()?.display_name;
+    this.selectedColor = this.originalPlayer()?.color;
+  }
 
   selectColor(event: Event) {
     let target = event.target as HTMLElement;
@@ -112,12 +137,17 @@ export class NewPlayerPageComponent {
     }
   }
 
-  createPlayer(): void {
-    this.playerService.createPlayer({
+  updatePlayer(): void {
+    this.playerService.updatePlayer(this.playerId(), {
       display_name: this.playerName!,
       color: this.selectedColor!,
+      avatar_url: this.originalPlayer()?.avatar_url,
     });
+    this.router.navigate(['/new-game']);
+  }
 
+  deletePlayer(): void {
+    this.playerService.deletePlayer(this.playerId());
     this.router.navigate(['/new-game']);
   }
 }

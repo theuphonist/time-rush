@@ -8,6 +8,7 @@ import { PlayerNameWithIconComponent } from '../shared/player-name-with-icon.com
 import { PlayerColors, PlayerService } from '../data-access/player.service';
 import { ButtonModule } from 'primeng/button';
 import { RouterLink } from '@angular/router';
+import { LocalStorageService } from '../data-access/local-storage.service';
 
 @Component({
   selector: 'turnt-new-game-page',
@@ -75,12 +76,21 @@ import { RouterLink } from '@angular/router';
     <div class="mt-5">
       <h3 class="text-600 text-lg font-semibold mt-0 mb-2">Players</h3>
 
-      @for (player of players(); track player.name) {
-      <div style="border-bottom: 1px solid" class="border-200">
+      @for (player of players(); track player.id) {
+      <div
+        style="border-bottom: 1px solid"
+        class="flex align-items-center justify-content-between border-200"
+      >
         <turnt-player-name-with-icon
           [playerColor]="player.color"
-          [playerName]="player.name"
+          [playerName]="player.display_name"
         />
+        <a
+          class="text-primary px-2 h-full"
+          [routerLink]="'/edit-player/' + [player.id]"
+        >
+          <i class="pi pi-pencil"></i>
+        </a>
       </div>
       }
       <a
@@ -100,9 +110,10 @@ import { RouterLink } from '@angular/router';
   `,
 })
 export class NewGamePageComponent {
-  private readonly PlayerService = inject(PlayerService);
+  private readonly playerService = inject(PlayerService);
+  private readonly localStorageService = inject(LocalStorageService);
 
-  readonly players = this.PlayerService.players;
+  readonly players = this.playerService.players;
 
   gameName: string | undefined;
   turnLength: number | undefined;
