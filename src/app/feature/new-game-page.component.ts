@@ -9,6 +9,14 @@ import { PlayerColors, PlayerService } from '../data-access/player.service';
 import { ButtonModule } from 'primeng/button';
 import { RouterLink } from '@angular/router';
 import { LocalStorageService } from '../data-access/local-storage.service';
+import {
+  CdkDropList,
+  CdkDrag,
+  CdkDragDrop,
+  CdkDragHandle,
+  CdkDragPlaceholder,
+  CdkDragPreview,
+} from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'turnt-new-game-page',
@@ -22,6 +30,11 @@ import { LocalStorageService } from '../data-access/local-storage.service';
     PlayerNameWithIconComponent,
     ButtonModule,
     RouterLink,
+    CdkDropList,
+    CdkDrag,
+    CdkDragPlaceholder,
+    CdkDragPreview,
+    CdkDragHandle,
   ],
   template: `
     <turnt-header text="New Game" />
@@ -75,24 +88,38 @@ import { LocalStorageService } from '../data-access/local-storage.service';
     <!-- Players -->
     <div class="mt-5">
       <h3 class="text-600 text-lg font-semibold mt-0 mb-2">Players</h3>
-
-      @for (player of players(); track player.id) {
-      <div
-        style="border-bottom: 1px solid"
-        class="flex align-items-center justify-content-between border-200"
-      >
-        <turnt-player-name-with-icon
-          [playerColor]="player.color"
-          [playerName]="player.display_name"
-        />
-        <a
-          class="text-primary px-2 h-full"
-          [routerLink]="'/edit-player/' + [player.id]"
+      <div cdkDropList (cdkDropListDropped)="onPlayerDrop($event)">
+        @for (player of players(); track player.id) {
+        <div
+          style="border-bottom: 1px solid"
+          class="flex align-items-center justify-content-between border-200"
+          cdkDrag
+          cdkDragPreviewContainer="parent"
         >
-          <i class="pi pi-pencil"></i>
-        </a>
+          <div class="flex align-items-center">
+            <div class="pi pi-bars px-3 py-2 text-400" cdkDragHandle></div>
+            <turnt-player-name-with-icon
+              [playerColor]="player.color"
+              [playerName]="player.display_name"
+            />
+          </div>
+          <a
+            class="text-primary px-2 py-2"
+            [routerLink]="'/edit-player/' + [player.id]"
+          >
+            <i class="pi pi-pencil"></i>
+          </a>
+          <div class="surface-200 h-4rem w-full" *cdkDragPlaceholder></div>
+          <div class="flex align-items-center surface-0 w-full" *cdkDragPreview>
+            <div class="pi pi-bars px-3 py-2 text-400" cdkDragHandle></div>
+            <turnt-player-name-with-icon
+              [playerColor]="player.color"
+              [playerName]="player.display_name"
+            />
+          </div>
+        </div>
+        }
       </div>
-      }
       <a
         routerLink="/new-player"
         class="block flex align-items-center justify-content-center w-full mt-2 h-3rem mb-2 surface-200 border-transparent border-round text-500 no-underline"
@@ -107,6 +134,15 @@ import { LocalStorageService } from '../data-access/local-storage.service';
     <p-button styleClass="w-full mt-6">
       <div class="w-full font-semibold text-center">Let's go!</div></p-button
     >
+  `,
+  styles: `
+    .cdk-drop-list-dragging .cdk-drag {
+      transition: transform 350ms cubic-bezier(0, 0, 0.2, 1);
+    }
+    
+    .cdk-drag-animating {
+      transition: transform 300ms cubic-bezier(0, 0, 0.2, 1);
+    }
   `,
 })
 export class NewGamePageComponent {
@@ -123,4 +159,8 @@ export class NewGamePageComponent {
 
   // make the PlayerColors enum available in component template
   readonly PlayerColors = PlayerColors;
+
+  onPlayerDrop(ev: CdkDragDrop<string[]>) {
+    this.playerService.swapPlayers(ev.previousIndex, ev.currentIndex);
+  }
 }

@@ -109,9 +109,10 @@ export class EditPlayerPageComponent {
 
   // make the PlayerColors enum available in component template
   readonly PlayerColors = PlayerColors;
-  // TODO - block selection of disabled colors
   readonly disabledColors = computed(() =>
-    this.players().map((player) => player.color)
+    this.players()
+      .filter((player) => player.id !== this.playerId())
+      .map((player) => player.color)
   );
   readonly playerColorArray = computed(() =>
     Object.values(PlayerColors).map((color) => ({
@@ -125,14 +126,15 @@ export class EditPlayerPageComponent {
     this.selectedColor = this.originalPlayer()?.color;
   }
 
-  selectColor(event: Event) {
-    let target = event.target as HTMLElement;
+  selectColor(ev: Event) {
+    let target = ev.target as HTMLElement;
 
+    // find element that has an associated color id. this may be a parent of the original event target
     while (target.parentElement && !target.id) {
       target = target.parentElement;
     }
 
-    if (target.id) {
+    if (target.id && !this.disabledColors().includes(target.id)) {
       this.selectedColor = target.id;
     }
   }
@@ -141,7 +143,6 @@ export class EditPlayerPageComponent {
     this.playerService.updatePlayer(this.playerId(), {
       display_name: this.playerName!,
       color: this.selectedColor!,
-      avatar_url: this.originalPlayer()?.avatar_url,
     });
     this.router.navigate(['/new-game']);
   }
