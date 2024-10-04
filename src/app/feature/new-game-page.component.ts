@@ -7,8 +7,7 @@ import { DropdownModule } from 'primeng/dropdown';
 import { PlayerNameWithIconComponent } from '../shared/player-name-with-icon.component';
 import { PlayerColors, PlayerService } from '../data-access/player.service';
 import { ButtonModule } from 'primeng/button';
-import { RouterLink } from '@angular/router';
-import { LocalStorageService } from '../data-access/local-storage.service';
+import { Router, RouterLink } from '@angular/router';
 import {
   CdkDropList,
   CdkDrag,
@@ -17,6 +16,7 @@ import {
   CdkDragPlaceholder,
   CdkDragPreview,
 } from '@angular/cdk/drag-drop';
+import { GameService } from '../data-access/game.service';
 
 @Component({
   selector: 'turnt-new-game-page',
@@ -92,7 +92,7 @@ import {
         @for (player of players(); track player.id) {
         <div
           style="border-bottom: 1px solid"
-          class="flex align-items-center justify-content-between border-200"
+          class="flex align-items-center justify-content-between border-200 h-4rem"
           cdkDrag
           cdkDragPreviewContainer="parent"
         >
@@ -131,7 +131,11 @@ import {
         ></small
       >
     </div>
-    <p-button styleClass="w-full mt-6">
+    <p-button
+      styleClass="w-full mt-6"
+      (click)="startGame()"
+      [disabled]="!gameName || !turnLength || !selectedTimeUnits"
+    >
       <div class="w-full font-semibold text-center">Let's go!</div></p-button
     >
   `,
@@ -147,7 +151,8 @@ import {
 })
 export class NewGamePageComponent {
   private readonly playerService = inject(PlayerService);
-  private readonly localStorageService = inject(LocalStorageService);
+  private readonly gameService = inject(GameService);
+  private readonly router = inject(Router);
 
   readonly players = this.playerService.players;
 
@@ -162,5 +167,14 @@ export class NewGamePageComponent {
 
   onPlayerDrop(ev: CdkDragDrop<string[]>) {
     this.playerService.swapPlayers(ev.previousIndex, ev.currentIndex);
+  }
+
+  startGame() {
+    this.gameService.createGame({
+      game_name: this.gameName!,
+      turn_length:
+        this.turnLength! * (this.selectedTimeUnits === 'min' ? 60 : 1) * 1000,
+    });
+    this.router.navigate(['/active-game']);
   }
 }

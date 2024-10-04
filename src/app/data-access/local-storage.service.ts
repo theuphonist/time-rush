@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 
 export enum LocalStorageKeys {
   Players = 'players',
+  Game = 'game',
 }
 
 @Injectable({
