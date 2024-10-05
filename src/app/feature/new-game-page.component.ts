@@ -165,6 +165,15 @@ export class NewGamePageComponent {
   // make the PlayerColors enum available in component template
   readonly PlayerColors = PlayerColors;
 
+  ngOnInit() {
+    this.gameName = this.gameService.gameInfo().game_name;
+    this.selectedTimeUnits = this.gameService.gameInfo().selected_time_units;
+    this.turnLength =
+      this.gameService.gameInfo().turn_length /
+      1000 /
+      (this.selectedTimeUnits === 'min' ? 60 : 1);
+  }
+
   onPlayerDrop(ev: CdkDragDrop<string[]>) {
     this.playerService.swapPlayers(ev.previousIndex, ev.currentIndex);
   }
@@ -174,6 +183,7 @@ export class NewGamePageComponent {
       game_name: this.gameName!,
       turn_length:
         this.turnLength! * (this.selectedTimeUnits === 'min' ? 60 : 1) * 1000,
+      selected_time_units: this.selectedTimeUnits!,
     });
     this.router.navigate(['/active-game']);
   }

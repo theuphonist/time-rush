@@ -10,6 +10,7 @@ import { LocalStorageKeys, LocalStorageService } from './local-storage.service';
 type GameModel = {
   game_name: string;
   turn_length: number;
+  selected_time_units: string;
 };
 
 @Injectable({

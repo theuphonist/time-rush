@@ -39,12 +39,14 @@ export class PlayerService {
   private readonly localStorageService = inject(LocalStorageService);
 
   readonly players: WritableSignal<PlayerModel[]>;
+  readonly activePlayerId: WritableSignal<number>;
 
   constructor() {
     this.players = signal(
       (this.localStorageService.getItem(LocalStorageKeys.Players) ??
         []) as PlayerModel[]
     );
+    this.activePlayerId = signal(this.players()[0]?.id);
   }
 
   // update local storage whenever players array changes
@@ -91,5 +93,23 @@ export class PlayerService {
     this.players.update((players) =>
       players.map((player, index) => ({ ...player, position: index }))
     );
+  }
+
+  changeActivePlayer() {
+    if (this.activePlayerId() === undefined) {
+      this.activePlayerId.set(this.players()[0].id);
+      return;
+    }
+
+    const currentPlayerIndex = this.players().findIndex(
+      (player) => player.id === this.activePlayerId()
+    );
+
+    const nextPlayerIndex =
+      currentPlayerIndex + 1 >= this.players().length
+        ? 0
+        : currentPlayerIndex + 1;
+
+    this.activePlayerId.set(this.players()[nextPlayerIndex].id);
   }
 }
