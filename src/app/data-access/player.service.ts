@@ -95,9 +95,14 @@ export class PlayerService {
     );
   }
 
-  changeActivePlayer() {
+  changeActivePlayer(nextPlayerId?: number) {
     if (this.activePlayerId() === undefined) {
       this.activePlayerId.set(this.players()[0].id);
+      return;
+    }
+
+    if (nextPlayerId !== undefined) {
+      this.activePlayerId.set(nextPlayerId);
       return;
     }
 

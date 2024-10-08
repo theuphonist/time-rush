@@ -185,6 +185,7 @@ export class NewGamePageComponent {
         this.turnLength! * (this.selectedTimeUnits === 'min' ? 60 : 1) * 1000,
       selected_time_units: this.selectedTimeUnits!,
     });
+    this.playerService.changeActivePlayer(this.players()[0].id);
     this.router.navigate(['/active-game']);
   }
 }
