@@ -4,9 +4,8 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --host 0.0.0.0",
-    "build": "ng build",
-    "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "build": "ng build --output-path docs --base-href /time-rush/ && cp docs/browser/index.html docs/browser/404.html",
+    "watch": "ng build --watch --configuration development"
   },
   "private": true,
   "dependencies": {
