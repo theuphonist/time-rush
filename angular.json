@@ -3,7 +3,7 @@
   "version": 1,
   "newProjectRoot": "projects",
   "projects": {
-    "turnt": {
+    "time-rush": {
       "projectType": "application",
       "schematics": {
         "@schematics/angular:component": {
@@ -19,12 +19,12 @@
       },
       "root": "",
       "sourceRoot": "src",
-      "prefix": "turnt",
+      "prefix": "time-rush",
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:application",
           "options": {
-            "outputPath": "dist/turnt",
+            "outputPath": "dist/time-rush",
             "index": "src/index.html",
             "browser": "src/main.ts",
             "polyfills": ["zone.js"],
@@ -67,10 +67,10 @@
           "builder": "@angular-devkit/build-angular:dev-server",
           "configurations": {
             "production": {
-              "buildTarget": "turnt:build:production"
+              "buildTarget": "time-rush:build:production"
             },
             "development": {
-              "buildTarget": "turnt:build:development"
+              "buildTarget": "time-rush:build:development"
             }
           },
           "defaultConfiguration": "development"

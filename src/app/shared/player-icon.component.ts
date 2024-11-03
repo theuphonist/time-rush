@@ -1,7 +1,7 @@
 import { Component, input } from '@angular/core';
 
 @Component({
-  selector: 'turnt-player-icon',
+  selector: 'time-rush-player-icon',
   standalone: true,
   imports: [],
   template: `

@@ -6,11 +6,11 @@ import { PlayerTimerComponent } from '../shared/player-timer.component';
 import { ButtonModule } from 'primeng/button';
 
 @Component({
-  selector: 'turnt-active-game-page',
+  selector: 'time-rush-active-game-page',
   standalone: true,
   imports: [HeaderComponent, PlayerTimerComponent, ButtonModule],
   template: `
-    <turnt-header
+    <time-rush-header
       [text]="gameInfo().game_name"
       alwaysSmall
       routeToPreviousPage="/new-game"
@@ -18,12 +18,12 @@ import { ButtonModule } from 'primeng/button';
     <div class="mt-page-content">
       @if (players(); as players){ @for (player of players; track player.id) {
       <div class="mb-2">
-        <turnt-player-timer
+        <time-rush-player-timer
           [turnLength]="gameInfo().turn_length"
           [isActive]="activePlayerId() === player.id"
           [refreshPeriod]="500"
           [player]="player"
-        ></turnt-player-timer>
+        ></time-rush-player-timer>
       </div>
       } }
     </div>

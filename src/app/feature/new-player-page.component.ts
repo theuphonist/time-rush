@@ -8,7 +8,7 @@ import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
 
 @Component({
-  selector: 'turnt-new-player-page',
+  selector: 'time-rush-new-player-page',
   standalone: true,
   imports: [
     HeaderComponent,
@@ -17,7 +17,7 @@ import { Router } from '@angular/router';
     PlayerIconComponent,
     ButtonModule,
   ],
-  template: `<turnt-header
+  template: `<time-rush-header
       text="New Player"
       alwaysSmall
       routeToPreviousPage="new-game"
@@ -54,7 +54,7 @@ import { Router } from '@angular/router';
           [id]="playerColor.value"
           (click)="selectColor($event)"
         >
-          <turnt-player-icon
+          <time-rush-player-icon
             [playerColor]="playerColor.value"
             [disabled]="playerColor.disabled"
             class="flex justify-content-center"

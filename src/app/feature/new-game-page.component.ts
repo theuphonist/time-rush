@@ -19,7 +19,7 @@ import {
 import { GameService } from '../data-access/game.service';
 
 @Component({
-  selector: 'turnt-new-game-page',
+  selector: 'time-rush-new-game-page',
   standalone: true,
   imports: [
     HeaderComponent,
@@ -37,7 +37,7 @@ import { GameService } from '../data-access/game.service';
     CdkDragHandle,
   ],
   template: `
-    <turnt-header text="New Game" />
+    <time-rush-header text="New Game" />
     <!-- Game name input -->
     <div class="mt-page-content">
       <label for="game-name"
@@ -98,7 +98,7 @@ import { GameService } from '../data-access/game.service';
         >
           <div class="flex align-items-center">
             <div class="pi pi-bars px-3 py-2 text-400" cdkDragHandle></div>
-            <turnt-player-name-with-icon
+            <time-rush-player-name-with-icon
               [playerColor]="player.color"
               [playerName]="player.display_name"
             />
@@ -112,7 +112,7 @@ import { GameService } from '../data-access/game.service';
           <div class="surface-200 h-4rem w-full" *cdkDragPlaceholder></div>
           <div class="flex align-items-center surface-0 w-full" *cdkDragPreview>
             <div class="pi pi-bars px-3 py-2 text-400" cdkDragHandle></div>
-            <turnt-player-name-with-icon
+            <time-rush-player-name-with-icon
               [playerColor]="player.color"
               [playerName]="player.display_name"
             />

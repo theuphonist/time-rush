@@ -4,11 +4,11 @@ import { Button } from 'primeng/button';
 import { HeaderComponent } from './shared/header.component';
 
 @Component({
-  selector: 'turnt-root',
+  selector: 'time-rush-root',
   standalone: true,
   imports: [RouterOutlet, Button, HeaderComponent],
   template: '<router-outlet/>',
 })
 export class AppComponent {
-  title = 'turnt';
+  title = 'time-rush';
 }

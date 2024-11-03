@@ -6,7 +6,7 @@ import { TimeWithColonsPipe } from './time-with-colons.pipe';
 import { FontColorClassFromBackgroundPipe } from './font-color-class-from-background.pipe';
 
 @Component({
-  selector: 'turnt-player-timer',
+  selector: 'time-rush-player-timer',
   standalone: true,
   imports: [TimeWithColonsPipe, FontColorClassFromBackgroundPipe],
   template: `

@@ -2,7 +2,7 @@ import { booleanAttribute, Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
-  selector: 'turnt-header',
+  selector: 'time-rush-header',
   standalone: true,
   imports: [RouterLink],
   template: ` <div
