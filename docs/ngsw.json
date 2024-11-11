@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1731283147803,
+  "timestamp": 1731287005770,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -11,13 +11,13 @@
         "ignoreVary": true
       },
       "urls": [
-        "/chunk-K6W76MZW.js",
-        "/chunk-RZHX5J22.js",
+        "/chunk-6KISXJTR.js",
+        "/chunk-BMC7TSRJ.js",
         "/index.html",
-        "/main-LRUJUBOA.js",
+        "/main-GZYNLXLL.js",
         "/manifest.webmanifest",
         "/polyfills-FFHMD2TL.js",
-        "/styles-DMHEAVQJ.css"
+        "/styles-NARPTX2F.css"
       ],
       "patterns": []
     },
@@ -59,10 +59,10 @@
     "/assets/icons/icon-512x512.png": "cea96778e35af681ec53e732a936d1d5a1a26806",
     "/assets/icons/icon-72x72.png": "986e6945287e7f30b0733c915b2ce61680e489fa",
     "/assets/icons/icon-96x96.png": "a5b03032ee881563d92afa0d6808cac7253c1deb",
-    "/chunk-K6W76MZW.js": "04ce48fa5964a03a8ce5e597613de92f988199d0",
-    "/chunk-RZHX5J22.js": "10d65387f20a55e242372a7bf79a7e9faf11e737",
-    "/index.html": "a242872e2105c4fce1df54e460ac5ecc0f0aff5c",
-    "/main-LRUJUBOA.js": "b68095f33c13391a9b1f8e1774da59ca4607a394",
+    "/chunk-6KISXJTR.js": "a9dffa2e6ae1ff5930b18223a8e7ca12be990985",
+    "/chunk-BMC7TSRJ.js": "191ba3a340e5eb5cba45b4b023ac5a785c6f15be",
+    "/index.html": "40fb98a0e9b9308d335f4b7d1abe257d7c2d0857",
+    "/main-GZYNLXLL.js": "681e87c781c0b342bff88020326343b1bb856f5e",
     "/manifest.webmanifest": "befbaf5f80771c76277bcd1f6a195c0732abc52e",
     "/media/Inter-italic.var-YRHKCDAA.woff2": "9995712e0ca3cda14c7d6014abe0f979cf57ec53",
     "/media/Inter-roman.var-5VGNBR6A.woff2": "d56a83c1e298702010cde038317713aaef23fe6c",
@@ -73,7 +73,7 @@
     "/media/primeicons-GEFHGEHP.ttf": "3b878ca7e88945a8ec25814810b95367d8977ae6",
     "/media/primeicons-P53SE5CV.woff": "361e3af71bb4e515feead2f787348a92a5527158",
     "/polyfills-FFHMD2TL.js": "f49b49a155bc7d192db62a4c15d0a612b460a667",
-    "/styles-DMHEAVQJ.css": "997c3bf2a6c2b3f9b349144ef8c7817000b31195"
+    "/styles-NARPTX2F.css": "1b55bacdbbdd18a964e479dfbce9a8f7e5edb4ca"
   },
   "navigationUrls": [
     {
