@@ -4,7 +4,7 @@
   "scripts": {
     "ng": "ng",
     "start": "ng serve --host 0.0.0.0",
-    "build": "ng build",
+    "build": "ng build && cp docs/index.html docs/404.html && echo timerush.app > docs/CNAME",
     "watch": "ng build --watch --configuration development"
   },
   "private": true,
