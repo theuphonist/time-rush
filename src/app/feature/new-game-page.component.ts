@@ -37,21 +37,20 @@ import { GameService } from '../data-access/game.service';
     CdkDragHandle,
   ],
   template: `
-    <time-rush-header text="New Game" />
+    <time-rush-header text="New Game" alwaysSmall routeToPreviousPage="/home" />
     <!-- Game name input -->
     <div class="mt-page-content">
-      <label for="game-name"
-        ><span class="text-600 text-lg font-semibold">Game Name</span></label
-      >
-      <input
-        class="w-full mt-2 mb-1"
-        id="game-name"
-        type="text"
-        aria-describedby="game-name-help"
-        pInputText
-        placeholder="Game name"
-        [(ngModel)]="gameName"
-      />
+      <label>
+        <span class="text-600 text-lg font-semibold">Game Name</span>
+        <input
+          class="w-full mt-2 mb-1"
+          type="text"
+          aria-describedby="game-name-help"
+          pInputText
+          placeholder="Game name"
+          [(ngModel)]="gameName"
+        />
+      </label>
       <small id="game-name-help"
         ><span class="text-500">What should this game be called?</span></small
       >
@@ -59,25 +58,24 @@ import { GameService } from '../data-access/game.service';
 
     <!-- Turn length input -->
     <div class="mt-5">
-      <label for="turn-length"
-        ><span class="text-600 text-lg font-semibold">Turn Length</span></label
-      >
-      <div class="flex mt-2 mb-1">
-        <p-inputNumber
-          class="mr-3"
-          inputStyleClass="w-8rem"
-          inputId="turn-length"
-          [showButtons]="true"
-          buttonLayout="horizontal"
-          incrementButtonIcon="pi pi-plus"
-          decrementButtonIcon="pi pi-minus"
-          [min]="1"
-          placeholder="Turn length"
-          [(ngModel)]="turnLength"
-        />
-        <p-dropdown [options]="timeUnits" [(ngModel)]="selectedTimeUnits">
-        </p-dropdown>
-      </div>
+      <label>
+        <span class="text-600 text-lg font-semibold">Turn Length</span>
+        <div class="flex mt-2 mb-1">
+          <p-inputNumber
+            class="mr-3"
+            inputStyleClass="w-8rem"
+            [showButtons]="true"
+            buttonLayout="horizontal"
+            incrementButtonIcon="pi pi-plus"
+            decrementButtonIcon="pi pi-minus"
+            [min]="1"
+            placeholder="Turn length"
+            [(ngModel)]="turnLength"
+          />
+          <p-dropdown [options]="timeUnits" [(ngModel)]="selectedTimeUnits">
+          </p-dropdown>
+        </div>
+      </label>
       <small id="turn-length-help"
         ><span class="text-500"
           >What's the time limit for each turn?</span
@@ -133,11 +131,10 @@ import { GameService } from '../data-access/game.service';
     </div>
     <p-button
       styleClass="w-full mt-6"
+      label="Let's go!"
       (click)="startGame()"
       [disabled]="!gameName || !turnLength || !selectedTimeUnits"
-    >
-      <div class="w-full font-semibold text-center">Let's go!</div></p-button
-    >
+    />
   `,
   styles: `
     .cdk-drop-list-dragging .cdk-drag {

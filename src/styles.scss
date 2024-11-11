@@ -11,7 +11,8 @@
   --base-top-padding-margin: 3rem; // needed to clear status bar on mobile
 }
 
-body {
+body,
+p-toast {
   margin-left: var(--base-x-padding-margin);
   margin-right: var(--base-x-padding-margin);
   margin-top: 0;
@@ -20,5 +21,14 @@ body {
 }
 
 .mt-page-content {
-  margin-top: calc(var(--base-top-padding-margin) + 3.5rem);
+  margin-top: calc(var(--base-top-padding-margin) + 4.5rem);
+}
+
+.p-button-label {
+  font-weight: 600 !important;
+}
+
+.p-toast {
+  padding-left: var(--base-x-padding-margin);
+  padding-right: var(--base-x-padding-margin);
 }

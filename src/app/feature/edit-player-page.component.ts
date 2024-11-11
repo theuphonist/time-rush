@@ -26,22 +26,21 @@ import { Router } from '@angular/router';
   template: `<time-rush-header
       text="Edit Player"
       alwaysSmall
-      routeToPreviousPage="new-game"
+      routeToPreviousPage="/new-game"
     />
     <!-- Player name input -->
     <div class="mt-page-content">
-      <label for="player-name"
-        ><span class="text-600 text-lg font-semibold">Player Name</span></label
-      >
-      <input
-        class="w-full mt-2 mb-1"
-        id="player-name"
-        type="text"
-        aria-describedby="player-name-help"
-        pInputText
-        placeholder="Player name"
-        [(ngModel)]="playerName"
-      />
+      <label>
+        <span class="text-600 text-lg font-semibold">Player Name</span>
+        <input
+          class="w-full mt-2 mb-1"
+          type="text"
+          aria-describedby="player-name-help"
+          pInputText
+          placeholder="Player name"
+          [(ngModel)]="playerName"
+        />
+      </label>
       <small id="player-name-help"
         ><span class="text-500">What's this player's name?</span></small
       >
@@ -72,22 +71,16 @@ import { Router } from '@angular/router';
 
     <p-button
       styleClass="w-full mt-6"
+      [label]="'Update ' + originalPlayer()?.display_name || 'Player'"
       (click)="updatePlayer()"
       [disabled]="!playerName || !selectedColor"
-    >
-      <div class="w-full font-semibold text-center">
-        Update {{ originalPlayer()?.display_name || 'Player' }}
-      </div></p-button
-    >
+    />
     <p-button
       styleClass="w-full mt-6"
+      [label]="'Delete ' + originalPlayer()?.display_name || 'Player'"
       severity="danger"
       (click)="deletePlayer()"
-    >
-      <div class="w-full font-semibold text-center">
-        Delete {{ originalPlayer()?.display_name || 'Player' }}
-      </div></p-button
-    >`,
+    />`,
   styles: `.selected {
     outline: solid var(--surface-300);
     }`,

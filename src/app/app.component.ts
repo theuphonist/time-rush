@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { Button } from 'primeng/button';
-import { HeaderComponent } from './shared/header.component';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'time-rush-root',
   standalone: true,
-  imports: [RouterOutlet, Button, HeaderComponent],
-  template: '<router-outlet/>',
+  imports: [RouterOutlet, Button, ToastModule],
+  template: '<router-outlet/> <p-toast position="top-center"/>',
 })
 export class AppComponent {
   title = 'time-rush';

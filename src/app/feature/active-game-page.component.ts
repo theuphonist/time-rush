@@ -27,11 +27,11 @@ import { ButtonModule } from 'primeng/button';
       </div>
       } }
     </div>
-    <p-button styleClass="w-full mt-6" (click)="changeActivePlayer()">
-      <div class="w-full font-semibold text-center">
-        Change Player
-      </div></p-button
-    >
+    <p-button
+      styleClass="w-full mt-6"
+      label="Change Player"
+      (click)="changeActivePlayer()"
+    />
   `,
   styles: ``,
 })
