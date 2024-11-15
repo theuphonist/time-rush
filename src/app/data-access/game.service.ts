@@ -1,4 +1,5 @@
 import {
+  computed,
   effect,
   inject,
   Injectable,
@@ -7,11 +8,16 @@ import {
 } from '@angular/core';
 import { LocalStorageKeys, LocalStorageService } from './local-storage.service';
 
-type GameModel = {
+export type GameModel = {
   game_name: string;
   turn_length: number;
-  selected_time_units: string;
+  time_units: TimeUnits;
 };
+
+export enum TimeUnits {
+  Seconds = 's',
+  Minutes = 'min',
+}
 
 @Injectable({
   providedIn: 'root',
@@ -19,10 +25,11 @@ type GameModel = {
 export class GameService {
   private readonly localStorageService = inject(LocalStorageService);
 
-  readonly gameInfo: WritableSignal<GameModel>;
+  private readonly _gameInfo: WritableSignal<GameModel>;
+  readonly gameInfo = computed(() => this._gameInfo());
 
   constructor() {
-    this.gameInfo = signal(
+    this._gameInfo = signal(
       (this.localStorageService.getItem(LocalStorageKeys.Game) ??
         {}) as GameModel
     );
@@ -30,10 +37,10 @@ export class GameService {
 
   // update local storage whenever game info changes
   private readonly localStorageGameUpdateEffect = effect(() =>
-    this.localStorageService.setItem(LocalStorageKeys.Game, this.gameInfo())
+    this.localStorageService.setItem(LocalStorageKeys.Game, this._gameInfo())
   );
 
-  createGame(gameInfo: GameModel) {
-    this.gameInfo.set(gameInfo);
+  updateGameInfo(gameInfoUpdates: Partial<GameModel>) {
+    this._gameInfo.update((gameInfo) => ({ ...gameInfo, ...gameInfoUpdates }));
   }
 }

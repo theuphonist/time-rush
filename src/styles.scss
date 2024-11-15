@@ -11,8 +11,7 @@
   --base-top-padding-margin: 3rem; // needed to clear status bar on mobile
 }
 
-body,
-p-toast {
+body {
   margin-left: var(--base-x-padding-margin);
   margin-right: var(--base-x-padding-margin);
   margin-top: 0;
@@ -29,7 +28,6 @@ p-toast {
 }
 
 .p-toast {
-  margin-top: 3rem;
-  padding-left: var(--base-x-padding-margin);
-  padding-right: var(--base-x-padding-margin);
+  width: calc(100vw - 2 * var(--base-x-padding-margin));
+  top: var(--base-top-padding-margin);
 }

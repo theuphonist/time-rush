@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal, WritableSignal } from '@angular/core';
 import { HeaderComponent } from '../shared/header.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
@@ -16,7 +16,7 @@ import {
   CdkDragPlaceholder,
   CdkDragPreview,
 } from '@angular/cdk/drag-drop';
-import { GameService } from '../data-access/game.service';
+import { GameModel, GameService, TimeUnits } from '../data-access/game.service';
 
 @Component({
   selector: 'time-rush-new-game-page',
@@ -38,7 +38,7 @@ import { GameService } from '../data-access/game.service';
   ],
   template: `
     <time-rush-header text="New Game" alwaysSmall routeToPreviousPage="/home" />
-    <!-- Game name input -->
+    @if (viewModel(); as vm) {
     <div class="mt-page-content">
       <label>
         <span class="text-600 text-lg font-semibold">Game Name</span>
@@ -48,7 +48,8 @@ import { GameService } from '../data-access/game.service';
           aria-describedby="game-name-help"
           pInputText
           placeholder="Game name"
-          [(ngModel)]="gameName"
+          [(ngModel)]="vm.game_name"
+          (ngModelChange)="onInputChange({ game_name: $event })"
         />
       </label>
       <small id="game-name-help"
@@ -70,9 +71,14 @@ import { GameService } from '../data-access/game.service';
             decrementButtonIcon="pi pi-minus"
             [min]="1"
             placeholder="Turn length"
-            [(ngModel)]="turnLength"
+            [(ngModel)]="vm.turn_length"
+            (ngModelChange)="onInputChange({ turn_length: $event })"
           />
-          <p-dropdown [options]="timeUnits" [(ngModel)]="selectedTimeUnits">
+          <p-dropdown
+            [options]="timeUnits"
+            [(ngModel)]="vm.time_units"
+            (ngModelChange)="onInputChange({ time_units: $event })"
+          >
           </p-dropdown>
         </div>
       </label>
@@ -132,9 +138,10 @@ import { GameService } from '../data-access/game.service';
     <p-button
       styleClass="w-full mt-6"
       label="Let's go!"
-      (click)="startGame()"
-      [disabled]="!gameName || !turnLength || !selectedTimeUnits"
+      (click)="onStartGameButtonClick()"
+      [disabled]="!vm.game_name || !vm.turn_length || !vm.time_units"
     />
+    }
   `,
   styles: `
     .cdk-drop-list-dragging .cdk-drag {
@@ -153,35 +160,47 @@ export class NewGamePageComponent {
 
   readonly players = this.playerService.players;
 
-  gameName: string | undefined;
-  turnLength: number | undefined;
+  readonly viewModel: WritableSignal<GameModel | null> = signal(null);
+  private readonly viewModelUpdates: WritableSignal<Partial<GameModel>> =
+    signal({});
+  readonly gameInfo = this.gameService.gameInfo;
 
-  readonly timeUnits: string[] = ['s', 'min'];
-  selectedTimeUnits: string | undefined = this.timeUnits[0];
+  readonly inputTimer: WritableSignal<ReturnType<typeof setTimeout> | null> =
+    signal(null);
 
-  // make the PlayerColors enum available in component template
+  // make enums available in component template
   readonly PlayerColors = PlayerColors;
+  readonly timeUnits = Object.values(TimeUnits);
 
   ngOnInit() {
-    this.gameName = this.gameService.gameInfo().game_name;
-    this.selectedTimeUnits = this.gameService.gameInfo().selected_time_units;
-    this.turnLength =
-      this.gameService.gameInfo().turn_length /
-      1000 /
-      (this.selectedTimeUnits === 'min' ? 60 : 1);
+    this.viewModel.set({
+      game_name: this.gameService.gameInfo().game_name,
+      turn_length: this.gameService.gameInfo().turn_length,
+      time_units: this.gameService.gameInfo().time_units,
+    });
+  }
+
+  onInputChange(inputChange: Partial<GameModel>) {
+    this.viewModelUpdates.update((viewModelUpdates) => ({
+      ...viewModelUpdates,
+      ...inputChange,
+    }));
+    if (this.inputTimer()) {
+      clearTimeout(this.inputTimer()!);
+    }
+    this.inputTimer.set(setTimeout(() => this.onSaveQueueTimerExpired(), 1000));
+  }
+
+  onSaveQueueTimerExpired() {
+    this.gameService.updateGameInfo({ ...(this.viewModelUpdates() ?? {}) });
+    this.viewModelUpdates.set({});
   }
 
   onPlayerDrop(ev: CdkDragDrop<string[]>) {
     this.playerService.swapPlayers(ev.previousIndex, ev.currentIndex);
   }
 
-  startGame() {
-    this.gameService.createGame({
-      game_name: this.gameName!,
-      turn_length:
-        this.turnLength! * (this.selectedTimeUnits === 'min' ? 60 : 1) * 1000,
-      selected_time_units: this.selectedTimeUnits!,
-    });
+  onStartGameButtonClick() {
     this.playerService.changeActivePlayer(this.players()[0].id);
     this.router.navigate(['/active-game']);
   }
