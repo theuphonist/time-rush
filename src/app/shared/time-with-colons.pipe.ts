@@ -10,26 +10,32 @@ export class TimeWithColonsPipe implements PipeTransform {
       return '0:00';
     }
 
-    if (timeInMilliseconds < 60000) {
-      return '0:' + this.addLeadingZero(Math.floor(timeInMilliseconds / 1000));
+    let totalSeconds = Math.ceil(timeInMilliseconds / 1000);
+
+    if (totalSeconds < 60) {
+      return '0:' + addLeadingZero(totalSeconds);
     }
 
-    let timeWithColons = '';
-    let timeInSeconds = timeInMilliseconds / 1000;
+    const displayedSeconds = totalSeconds % 60;
+    const totalMinutes = (totalSeconds - displayedSeconds) / 60;
 
-    while (timeInSeconds >= 60) {
-      const currentTimeValue = Math.floor(timeInSeconds / 60);
-      const currentTimeValueAsString = this.addLeadingZero(currentTimeValue);
-
-      timeWithColons += currentTimeValueAsString + ':';
-
-      timeInSeconds -= currentTimeValue * 60;
+    if (totalMinutes < 60) {
+      return totalMinutes + ':' + addLeadingZero(displayedSeconds);
     }
 
-    return timeWithColons + this.addLeadingZero(Math.floor(timeInSeconds));
-  }
+    const displayedMinutes = totalMinutes % 60;
+    const displayedHours = (totalMinutes - displayedMinutes) / 60;
 
-  addLeadingZero(value: number): string {
-    return (value < 10 ? '0' : '') + value;
+    return (
+      displayedHours +
+      ':' +
+      addLeadingZero(displayedMinutes) +
+      ':' +
+      addLeadingZero(displayedSeconds)
+    );
   }
+}
+
+function addLeadingZero(value: number): string {
+  return (value < 10 ? '0' : '') + value;
 }

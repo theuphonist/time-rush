@@ -20,8 +20,8 @@ import { ButtonModule } from 'primeng/button';
       <div class="mb-2">
         <time-rush-player-timer
           [turnLength]="gameInfo().turn_length"
+          [timeUnits]="gameInfo().time_units"
           [isActive]="activePlayerId() === player.id"
-          [refreshPeriod]="500"
           [player]="player"
         ></time-rush-player-timer>
       </div>

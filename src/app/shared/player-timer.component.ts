@@ -1,9 +1,10 @@
 import { booleanAttribute, Component, computed, input } from '@angular/core';
-import { interval, map, of, switchMap } from 'rxjs';
+import { interval, map, of, startWith, switchMap } from 'rxjs';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { PlayerModel } from '../data-access/player.service';
 import { TimeWithColonsPipe } from './time-with-colons.pipe';
 import { FontColorClassFromBackgroundPipe } from './font-color-class-from-background.pipe';
+import { TimeUnits } from '../data-access/game.service';
 
 @Component({
   selector: 'time-rush-player-timer',
@@ -13,7 +14,7 @@ import { FontColorClassFromBackgroundPipe } from './font-color-class-from-backgr
     <div
       class="border-round surface-400 p-1"
       [class.opacity-40]="!isActive()"
-      style="transition: width ease-out 0.25s, height ease-out 0.25s"
+      [style.transition]="'width ease-out 0.25s, height ease-out 0.25s'"
       [style.width.%]="
         isActive() ? timerWidthsInPercent.active : timerWidthsInPercent.inactive
       "
@@ -47,7 +48,7 @@ import { FontColorClassFromBackgroundPipe } from './font-color-class-from-backgr
           </div>
           @if (isActive()){
           <div>
-            {{ timeRemaining() ?? turnLength() | timeWithColons }}
+            {{ timeRemaining() ?? turnLengthInMs() | timeWithColons }}
           </div>
           }
         </div>
@@ -58,24 +59,40 @@ import { FontColorClassFromBackgroundPipe } from './font-color-class-from-backgr
 export class PlayerTimerComponent {
   readonly isActive = input(false, { transform: booleanAttribute });
   readonly turnLength = input.required<number>();
+  readonly timeUnits = input.required<TimeUnits>();
   readonly refreshPeriod = input<number>(1000);
   readonly player = input.required<PlayerModel>();
+
   readonly timerWidthsInPercent = { active: 100, inactive: 50 };
   readonly timerHeightsInRem = { active: 4, inactive: 2.5 };
+
+  readonly turnLengthInMs = computed(
+    () =>
+      this.turnLength() *
+      (this.timeUnits() === TimeUnits.Minutes ? 60 : 1) *
+      1000
+  );
 
   private readonly isActive$ = toObservable(this.isActive);
 
   private readonly timeRemaining$ = this.isActive$.pipe(
     switchMap((isActive) =>
-      // only count down when this player is active
-      isActive ? interval(this.refreshPeriod()) : of(this.turnLength())
+      // reset timer when this player deactivates
+      // interval() first emits "0" after initial delay, use "startWith" to get initial value immediately
+      isActive ? interval(this.refreshPeriod()).pipe(startWith(-1)) : of(-1)
     ),
-    map((timerTicks) => this.turnLength() - timerTicks * this.refreshPeriod())
+    map(
+      (timerTicks) =>
+        this.turnLengthInMs() - (timerTicks + 1) * this.refreshPeriod()
+    )
   );
 
   readonly timeRemaining = toSignal(this.timeRemaining$);
   readonly percentRemaining = computed(
     () =>
-      ((this.timeRemaining() ?? this.turnLength()) / this.turnLength()) * 100
+      (((this.timeRemaining() ?? this.turnLengthInMs() + this.refreshPeriod()) -
+        this.refreshPeriod()) /
+        this.turnLengthInMs()) *
+      100
   );
 }
