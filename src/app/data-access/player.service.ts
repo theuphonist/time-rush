@@ -1,4 +1,5 @@
 import {
+  computed,
   effect,
   inject,
   Injectable,
@@ -48,6 +49,21 @@ export class PlayerService {
     );
     this.activePlayerId = signal(this.players()[0]?.id);
   }
+
+  readonly nextPlayer = computed(() => {
+    const activePlayerIndex = this.players().findIndex(
+      (player) => player.id === this.activePlayerId()
+    );
+
+    if (
+      activePlayerIndex === -1 ||
+      activePlayerIndex === this.players().length - 1
+    ) {
+      return this.players()[0];
+    }
+
+    return this.players()[activePlayerIndex + 1];
+  });
 
   // update local storage whenever players array changes
   private readonly localStoragePlayerUpdateEffect = effect(() =>

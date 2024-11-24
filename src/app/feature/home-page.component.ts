@@ -3,19 +3,13 @@ import { HeaderComponent } from '../shared/header.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 
 @Component({
   selector: 'time-rush-home-page',
   standalone: true,
-  imports: [
-    HeaderComponent,
-    InputTextModule,
-    FormsModule,
-    ButtonModule,
-    RouterLink,
-  ],
+  imports: [HeaderComponent, InputTextModule, FormsModule, ButtonModule],
   template: `
     <time-rush-header text="Time Rush" />
     <!-- Session code input -->

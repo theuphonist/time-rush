@@ -4,11 +4,17 @@ import { GameService } from '../data-access/game.service';
 import { PlayerService } from '../data-access/player.service';
 import { PlayerTimerComponent } from '../shared/player-timer.component';
 import { ButtonModule } from 'primeng/button';
+import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
 
 @Component({
   selector: 'time-rush-active-game-page',
   standalone: true,
-  imports: [HeaderComponent, PlayerTimerComponent, ButtonModule],
+  imports: [
+    HeaderComponent,
+    PlayerTimerComponent,
+    ButtonModule,
+    PossessiveNamePipe,
+  ],
   template: `
     <time-rush-header
       [text]="gameInfo().game_name"
@@ -28,8 +34,10 @@ import { ButtonModule } from 'primeng/button';
       } }
     </div>
     <p-button
-      styleClass="w-full mt-6"
-      label="Change Player"
+      styleClass="w-full h-8rem mt-6"
+      [label]="
+        'Tap to start ' + (nextPlayer().display_name | possessiveName) + ' turn'
+      "
       (click)="changeActivePlayer()"
     />
   `,
@@ -43,6 +51,7 @@ export class ActiveGamePageComponent {
   readonly gameInfo = this.gameService.gameInfo;
   readonly players = this.playerService.players;
   readonly activePlayerId = this.playerService.activePlayerId;
+  readonly nextPlayer = this.playerService.nextPlayer;
 
   readonly timerStates: WritableSignal<boolean[]> = signal(
     new Array(this.players().length).fill(false)
