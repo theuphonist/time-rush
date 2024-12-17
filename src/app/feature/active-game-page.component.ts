@@ -17,7 +17,7 @@ import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
   ],
   template: `
     <time-rush-header
-      [text]="gameInfo().game_name"
+      [text]="gameInfo().name"
       alwaysSmall
       routeToPreviousPage="/new-game"
     />
@@ -25,8 +25,8 @@ import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
       @if (players(); as players){ @for (player of players; track player.id) {
       <div class="mb-2">
         <time-rush-player-timer
-          [turnLength]="gameInfo().turn_length"
-          [timeUnits]="gameInfo().time_units"
+          [turnLength]="gameInfo().turnLength"
+          [timeUnits]="gameInfo().turnLengthUnits"
           [isActive]="activePlayerId() === player.id"
           [player]="player"
         ></time-rush-player-timer>

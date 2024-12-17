@@ -9,9 +9,11 @@ import {
 import { LocalStorageKeys, LocalStorageService } from './local-storage.service';
 
 export type GameModel = {
-  game_name: string;
-  turn_length: number;
-  time_units: TimeUnits;
+  id?: string;
+  name: string;
+  turnLength: number;
+  turnLengthUnits: TimeUnits;
+  joinCode?: string;
 };
 
 export enum TimeUnits {

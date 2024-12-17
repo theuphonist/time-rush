@@ -8,6 +8,7 @@ import { PlayerNameWithIconComponent } from '../shared/player-name-with-icon.com
 import { PlayerColors, PlayerService } from '../data-access/player.service';
 import { ButtonModule } from 'primeng/button';
 import { Router, RouterLink } from '@angular/router';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import {
   CdkDropList,
   CdkDrag,
@@ -17,6 +18,14 @@ import {
   CdkDragPreview,
 } from '@angular/cdk/drag-drop';
 import { GameModel, GameService, TimeUnits } from '../data-access/game.service';
+import { ApiService } from '../data-access/api.service';
+import { MessageService } from 'primeng/api';
+import { HttpClient } from '@angular/common/http';
+
+enum GameTypes {
+  Local = 'local',
+  Online = 'online',
+}
 
 @Component({
   selector: 'time-rush-new-game-page',
@@ -35,6 +44,7 @@ import { GameModel, GameService, TimeUnits } from '../data-access/game.service';
     CdkDragPlaceholder,
     CdkDragPreview,
     CdkDragHandle,
+    SelectButtonModule,
   ],
   template: `
     <time-rush-header text="New Game" alwaysSmall routeToPreviousPage="/home" />
@@ -48,8 +58,8 @@ import { GameModel, GameService, TimeUnits } from '../data-access/game.service';
           aria-describedby="game-name-help"
           pInputText
           placeholder="Game name"
-          [(ngModel)]="vm.game_name"
-          (ngModelChange)="onInputChange({ game_name: $event })"
+          [(ngModel)]="vm.name"
+          (ngModelChange)="onInputChange({ name: $event })"
         />
       </label>
       <small id="game-name-help"
@@ -71,13 +81,13 @@ import { GameModel, GameService, TimeUnits } from '../data-access/game.service';
             decrementButtonIcon="pi pi-minus"
             [min]="1"
             placeholder="Turn length"
-            [(ngModel)]="vm.turn_length"
-            (ngModelChange)="onInputChange({ turn_length: $event })"
+            [(ngModel)]="vm.turnLength"
+            (ngModelChange)="onInputChange({ turnLength: $event })"
           />
           <p-dropdown
             [options]="timeUnits"
-            [(ngModel)]="vm.time_units"
-            (ngModelChange)="onInputChange({ time_units: $event })"
+            [(ngModel)]="vm.turnLengthUnits"
+            (ngModelChange)="onInputChange({ turnLengthUnits: $event })"
           >
           </p-dropdown>
         </div>
@@ -135,11 +145,28 @@ import { GameModel, GameService, TimeUnits } from '../data-access/game.service';
         ></small
       >
     </div>
+
+    <!-- Game type -->
+    <div class="mt-5 w-full">
+      <label>
+        <span class="text-600 text-lg font-semibold">Game Type</span>
+        <p-selectButton
+          styleClass="mt-3 w-full"
+          [options]="gameTypes"
+          [(ngModel)]="selectedGameType"
+          optionLabel="label"
+          optionValue="value"
+          [unselectable]="true"
+          size="small"
+        />
+      </label>
+    </div>
     <p-button
+      class="w-full"
       styleClass="w-full mt-6"
       label="Let's go!"
       (click)="onStartGameButtonClick()"
-      [disabled]="!vm.game_name || !vm.turn_length || !vm.time_units"
+      [disabled]="!vm.name || !vm.turnLength || !vm.turnLengthUnits"
     />
     }
   `,
@@ -147,7 +174,7 @@ import { GameModel, GameService, TimeUnits } from '../data-access/game.service';
     .cdk-drop-list-dragging .cdk-drag {
       transition: transform 350ms cubic-bezier(0, 0, 0.2, 1);
     }
-    
+
     .cdk-drag-animating {
       transition: transform 300ms cubic-bezier(0, 0, 0.2, 1);
     }
@@ -157,6 +184,9 @@ export class NewGamePageComponent {
   private readonly playerService = inject(PlayerService);
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
+  private readonly apiService = inject(ApiService);
+  private readonly messageService = inject(MessageService);
+  private readonly httpClient = inject(HttpClient);
 
   readonly players = this.playerService.players;
 
@@ -168,19 +198,27 @@ export class NewGamePageComponent {
   readonly inputTimer: WritableSignal<ReturnType<typeof setTimeout> | null> =
     signal(null);
 
+  readonly gameTypes = [
+    { label: "Pass 'n' Play", value: GameTypes.Local },
+    { label: 'Online', value: GameTypes.Online },
+  ];
+  readonly selectedGameType: WritableSignal<GameTypes> = signal(
+    GameTypes.Local
+  );
+
   // make enums available in component template
   readonly PlayerColors = PlayerColors;
   readonly timeUnits = Object.values(TimeUnits);
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.viewModel.set({
-      game_name: this.gameService.gameInfo().game_name,
-      turn_length: this.gameService.gameInfo().turn_length,
-      time_units: this.gameService.gameInfo().time_units,
+      name: this.gameService.gameInfo().name,
+      turnLength: this.gameService.gameInfo().turnLength,
+      turnLengthUnits: this.gameService.gameInfo().turnLengthUnits,
     });
   }
 
-  onInputChange(inputChange: Partial<GameModel>) {
+  onInputChange(inputChange: Partial<GameModel>): void {
     this.viewModelUpdates.update((viewModelUpdates) => ({
       ...viewModelUpdates,
       ...inputChange,
@@ -191,17 +229,34 @@ export class NewGamePageComponent {
     this.inputTimer.set(setTimeout(() => this.onSaveQueueTimerExpired(), 1000));
   }
 
-  onSaveQueueTimerExpired() {
+  onSaveQueueTimerExpired(): void {
     this.gameService.updateGameInfo({ ...(this.viewModelUpdates() ?? {}) });
     this.viewModelUpdates.set({});
   }
 
-  onPlayerDrop(ev: CdkDragDrop<string[]>) {
+  onPlayerDrop(ev: CdkDragDrop<string[]>): void {
     this.playerService.swapPlayers(ev.previousIndex, ev.currentIndex);
   }
 
-  onStartGameButtonClick() {
-    this.playerService.changeActivePlayer(this.players()[0].id);
-    this.router.navigate(['/active-game']);
+  onStartGameButtonClick(): void {
+    const game = this.viewModel();
+
+    // all game props should be defined here, but just in case
+    if (!game) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Create Game Failed',
+        detail: 'Missing required fields',
+      });
+      return;
+    }
+
+    if (this.selectedGameType() === GameTypes.Local) {
+      this.playerService.changeActivePlayer(this.players()[0].id);
+      this.router.navigate(['/active-game']);
+      return;
+    }
+
+    this.apiService.createGame(game);
   }
 }

@@ -15,7 +15,6 @@ export type PlayerModel = {
   display_name: string;
   color: string;
   position: number;
-  avatar_url?: string;
 };
 
 export enum PlayerColors {
