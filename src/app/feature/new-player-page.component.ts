@@ -2,10 +2,11 @@ import { Component, computed, inject } from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { HeaderComponent } from '../shared/header.component';
-import { PlayerColors, PlayerService } from '../data-access/player.service';
+import { PlayerService } from '../data-access/player.service';
 import { PlayerIconComponent } from '../shared/player-icon.component';
 import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
+import { PlayerColors } from '../shared/custom-types';
 
 @Component({
   selector: 'time-rush-new-player-page',
@@ -77,7 +78,7 @@ export class NewPlayerPageComponent {
   private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
 
-  private readonly players = this.playerService.players;
+  private readonly players = this.playerService.localPlayers;
 
   playerName: string | undefined;
 
@@ -108,10 +109,9 @@ export class NewPlayerPageComponent {
   }
 
   createPlayer(): void {
-    this.playerService.createPlayer({
-      display_name: this.playerName!,
+    this.playerService.createLocalPlayer({
+      name: this.playerName!,
       color: this.selectedColor!,
-      position: this.players().length,
     });
 
     this.router.navigate(['/new-game']);

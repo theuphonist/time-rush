@@ -1,17 +1,12 @@
-import {
-  Component,
-  computed,
-  inject,
-  input,
-  numberAttribute,
-} from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { HeaderComponent } from '../shared/header.component';
-import { PlayerColors, PlayerService } from '../data-access/player.service';
+import { PlayerService } from '../data-access/player.service';
 import { PlayerIconComponent } from '../shared/player-icon.component';
 import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
+import { PlayerColors } from '../shared/custom-types';
 
 @Component({
   selector: 'time-rush-edit-player-page',
@@ -71,13 +66,13 @@ import { Router } from '@angular/router';
 
     <p-button
       styleClass="w-full mt-6"
-      [label]="'Update ' + originalPlayer()?.display_name || 'Player'"
+      [label]="'Update ' + originalPlayer()?.name || 'Player'"
       (click)="updatePlayer()"
       [disabled]="!playerName || !selectedColor"
     />
     <p-button
       styleClass="w-full mt-6"
-      [label]="'Delete ' + originalPlayer()?.display_name || 'Player'"
+      [label]="'Delete ' + originalPlayer()?.name || 'Player'"
       severity="danger"
       (click)="deletePlayer()"
     />`,
@@ -93,11 +88,13 @@ export class EditPlayerPageComponent {
   playerName: string | undefined;
   selectedColor: string | undefined | null;
 
-  readonly playerId = input(0, { transform: numberAttribute });
+  readonly playerId = input('');
 
-  private readonly players = this.playerService.players;
+  private readonly players = this.playerService.localPlayers;
   readonly originalPlayer = computed(() =>
-    this.playerService.players().find((player) => player.id === this.playerId())
+    this.playerService
+      .localPlayers()
+      .find((player) => player.id === this.playerId())
   );
 
   // make the PlayerColors enum available in component template
@@ -115,7 +112,7 @@ export class EditPlayerPageComponent {
   );
 
   ngOnInit() {
-    this.playerName = this.originalPlayer()?.display_name;
+    this.playerName = this.originalPlayer()?.name;
     this.selectedColor = this.originalPlayer()?.color;
   }
 
@@ -134,7 +131,7 @@ export class EditPlayerPageComponent {
 
   updatePlayer(): void {
     this.playerService.updatePlayer(this.playerId(), {
-      display_name: this.playerName!,
+      name: this.playerName!,
       color: this.selectedColor!,
     });
     this.router.navigate(['/new-game']);

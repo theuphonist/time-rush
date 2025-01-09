@@ -1,10 +1,9 @@
 import { booleanAttribute, Component, computed, input } from '@angular/core';
 import { interval, map, of, startWith, switchMap } from 'rxjs';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { PlayerModel } from '../data-access/player.service';
 import { TimeWithColonsPipe } from './time-with-colons.pipe';
 import { FontColorClassFromBackgroundPipe } from './font-color-class-from-background.pipe';
-import { TimeUnits } from '../data-access/game.service';
+import { PlayerModel, TimeUnits } from './custom-types';
 
 @Component({
   selector: 'time-rush-player-timer',
@@ -44,7 +43,7 @@ import { TimeUnits } from '../data-access/game.service';
           "
         >
           <div class="font-semibold opacity-100">
-            {{ player().display_name }}
+            {{ player().name }}
           </div>
           @if (isActive()){
           <div>

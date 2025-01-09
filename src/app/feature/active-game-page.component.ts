@@ -17,7 +17,7 @@ import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
   ],
   template: `
     <time-rush-header
-      [text]="gameInfo().name"
+      [text]="game().name"
       alwaysSmall
       routeToPreviousPage="/new-game"
     />
@@ -25,8 +25,8 @@ import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
       @if (players(); as players){ @for (player of players; track player.id) {
       <div class="mb-2">
         <time-rush-player-timer
-          [turnLength]="gameInfo().turnLength"
-          [timeUnits]="gameInfo().turnLengthUnits"
+          [turnLength]="game().turnLength"
+          [timeUnits]="game().turnLengthUnits"
           [isActive]="activePlayerId() === player.id"
           [player]="player"
         ></time-rush-player-timer>
@@ -35,9 +35,7 @@ import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
     </div>
     <p-button
       styleClass="w-full h-8rem mt-6"
-      [label]="
-        'Tap to start ' + (nextPlayer().display_name | possessiveName) + ' turn'
-      "
+      [label]="'Tap to start ' + (nextPlayer().name | possessiveName) + ' turn'"
       (click)="changeActivePlayer()"
     />
   `,
@@ -48,8 +46,8 @@ export class ActiveGamePageComponent {
   private readonly gameService = inject(GameService);
   private readonly playerService = inject(PlayerService);
 
-  readonly gameInfo = this.gameService.gameInfo;
-  readonly players = this.playerService.players;
+  readonly game = this.gameService.game;
+  readonly players = this.playerService.localPlayers;
   readonly activePlayerId = this.playerService.activePlayerId;
   readonly nextPlayer = this.playerService.nextPlayer;
 

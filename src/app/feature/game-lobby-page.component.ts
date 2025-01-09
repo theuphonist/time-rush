@@ -25,9 +25,7 @@ import {
   CdkDragPreview,
 } from '@angular/cdk/drag-drop';
 import { GameService } from '../data-access/game.service';
-import { ApiService } from '../data-access/api.service';
 import { MessageService } from 'primeng/api';
-import { WebSocketService } from '../data-access/web-socket.service';
 import {
   GameModel,
   PlayerColors,
@@ -36,7 +34,7 @@ import {
 } from '../shared/custom-types';
 
 @Component({
-  selector: 'time-rush-new-game-page',
+  selector: 'time-rush-game-lobby-page',
   standalone: true,
   imports: [
     HeaderComponent,
@@ -55,25 +53,18 @@ import {
     SelectButtonModule,
   ],
   template: `
-    <time-rush-header text="New Game" alwaysSmall routeToPreviousPage="/home" />
+    <time-rush-header
+      [text]="game().name"
+      alwaysSmall
+      routeToPreviousPage="/home"
+    />
     @if (viewModel(); as vm) {
-    <div class="mt-page-content">
-      <label>
-        <span class="text-600 text-lg font-semibold">Game Name</span>
-        <input
-          class="w-full mt-2 mb-1"
-          type="text"
-          aria-describedby="game-name-help"
-          pInputText
-          placeholder="Game name"
-          [(ngModel)]="vm.name"
-          (ngModelChange)="onInputChange({ name: $event })"
-        />
-      </label>
-      <small id="game-name-help"
-        ><span class="text-500">What should this game be called?</span></small
-      >
-    </div>
+    <section class="mt-page-content flex gap-3">
+      <div class="flex flex-column align-items-start">
+        Join Code
+        <span class="text-xl font-bold">{{ game().joinCode }}</span>
+      </div>
+    </section>
 
     <!-- Turn length input -->
     <div class="mt-5">
@@ -188,15 +179,16 @@ import {
     }
   `,
 })
-export class NewGamePageComponent {
+export class GameLobbyPageComponent {
   private readonly playerService = inject(PlayerService);
   private readonly gameService = inject(GameService);
   private readonly router = inject(Router);
-  private readonly apiService = inject(ApiService);
   private readonly messageService = inject(MessageService);
-  private readonly webSocketService = inject(WebSocketService);
 
-  readonly players = this.playerService.localPlayers;
+  readonly game = this.gameService.game;
+  readonly playerIsHost = this.playerService.playerIsHost;
+
+  readonly playerIds = computed(() => this.game().playerIds);
 
   readonly viewModel: WritableSignal<GameModel> = signal({
     name: '',

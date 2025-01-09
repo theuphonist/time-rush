@@ -4,6 +4,7 @@ import { NewPlayerPageComponent } from './feature/new-player-page.component';
 import { EditPlayerPageComponent } from './feature/edit-player-page.component';
 import { ActiveGamePageComponent } from './feature/active-game-page.component';
 import { HomePageComponent } from './feature/home-page.component';
+import { GameLobbyPageComponent } from './feature/game-lobby-page.component';
 
 export const routes: Routes = [
   { path: 'home', component: HomePageComponent },
@@ -11,5 +12,6 @@ export const routes: Routes = [
   { path: 'new-player', component: NewPlayerPageComponent },
   { path: 'edit-player/:playerId', component: EditPlayerPageComponent },
   { path: 'active-game', component: ActiveGamePageComponent },
+  { path: 'lobby/:joinCode', component: GameLobbyPageComponent },
   { path: '**', redirectTo: 'home' },
 ];
