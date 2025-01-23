@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1732472052058,
+  "timestamp": 1737611289850,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -11,13 +11,13 @@
         "ignoreVary": true
       },
       "urls": [
-        "/chunk-EDM4BGMV.js",
-        "/chunk-L7IIDPN6.js",
+        "/chunk-HXM5GYJS.js",
+        "/chunk-Y7HMQYUJ.js",
         "/index.html",
-        "/main-5QPKA4ZZ.js",
+        "/main-5CBA7QJU.js",
         "/manifest.webmanifest",
         "/polyfills-FFHMD2TL.js",
-        "/styles-377VWGZE.css"
+        "/styles-LDYBO36N.css"
       ],
       "patterns": []
     },
@@ -37,9 +37,13 @@
         "/assets/icons/icon-512x512.png",
         "/assets/icons/icon-72x72.png",
         "/assets/icons/icon-96x96.png",
+        "/assets/img/custom-color.png",
+        "/assets/img/custom-hue.png",
         "/media/Inter-italic.var-YRHKCDAA.woff2",
         "/media/Inter-roman.var-5VGNBR6A.woff2",
         "/media/color-727V6BA6.png",
+        "/media/custom-color-3LUHUBGQ.png",
+        "/media/custom-hue-RMMBQOAC.png",
         "/media/hue-3YTJE6JS.png",
         "/media/primeicons-4GST5W3O.woff2",
         "/media/primeicons-DHQU4SEP.svg",
@@ -59,21 +63,25 @@
     "/assets/icons/icon-512x512.png": "cea96778e35af681ec53e732a936d1d5a1a26806",
     "/assets/icons/icon-72x72.png": "986e6945287e7f30b0733c915b2ce61680e489fa",
     "/assets/icons/icon-96x96.png": "a5b03032ee881563d92afa0d6808cac7253c1deb",
-    "/chunk-EDM4BGMV.js": "57c7eff670993a6201acd6010d7bcd71178ca42a",
-    "/chunk-L7IIDPN6.js": "83be8b97a64703d81f4237eec584db3b7593ea6a",
-    "/index.html": "c54e56c11355db40c6d5877ea6c8e375e49e861a",
-    "/main-5QPKA4ZZ.js": "2b0076c3b53c0e5896b58a3ae20f10a458287bb7",
+    "/assets/img/custom-color.png": "ff4c4bcb2207891b292f544edb4da9d2df5d45cf",
+    "/assets/img/custom-hue.png": "f81ae627637a684614aa726e206c73ce099a01fd",
+    "/chunk-HXM5GYJS.js": "fce6a793966ea1c188477d47247172c0a5ca7d99",
+    "/chunk-Y7HMQYUJ.js": "307f031557e937136da6f5904dfe038abe873cad",
+    "/index.html": "89bee93194d551305e6e3f715c67b7e407d3031c",
+    "/main-5CBA7QJU.js": "ff609b785be0be9331f1860fdf794a7995a743bc",
     "/manifest.webmanifest": "befbaf5f80771c76277bcd1f6a195c0732abc52e",
     "/media/Inter-italic.var-YRHKCDAA.woff2": "9995712e0ca3cda14c7d6014abe0f979cf57ec53",
     "/media/Inter-roman.var-5VGNBR6A.woff2": "d56a83c1e298702010cde038317713aaef23fe6c",
     "/media/color-727V6BA6.png": "c54e4eac0b6c88b9da8cfdf00b1d9093b828286b",
+    "/media/custom-color-3LUHUBGQ.png": "ff4c4bcb2207891b292f544edb4da9d2df5d45cf",
+    "/media/custom-hue-RMMBQOAC.png": "f81ae627637a684614aa726e206c73ce099a01fd",
     "/media/hue-3YTJE6JS.png": "ec215387067c733aed6649b96d8a81798a58b21b",
     "/media/primeicons-4GST5W3O.woff2": "837c1279b6af9d297f34fdb43e6fcc9206a79f32",
     "/media/primeicons-DHQU4SEP.svg": "a07ae39027c1a780b42fd82fad7575c2924d9d28",
     "/media/primeicons-GEFHGEHP.ttf": "3b878ca7e88945a8ec25814810b95367d8977ae6",
     "/media/primeicons-P53SE5CV.woff": "361e3af71bb4e515feead2f787348a92a5527158",
     "/polyfills-FFHMD2TL.js": "f49b49a155bc7d192db62a4c15d0a612b460a667",
-    "/styles-377VWGZE.css": "afc6bf1559d7d88387fd413343ac5c8984843f19"
+    "/styles-LDYBO36N.css": "ca5dd9747e409fcfe54a1e4f2552065ee8281f3d"
   },
   "navigationUrls": [
     {
