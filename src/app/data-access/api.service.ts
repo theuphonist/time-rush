@@ -1,7 +1,12 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
 import { API_URL, COMMON_HEADERS } from '../shared/constants';
-import { GameModel, PlayerModel, Endpoints } from '../shared/custom-types';
+import {
+  GameModel,
+  PlayerModel,
+  Endpoints,
+  GameFormViewModel,
+} from '../shared/types';
 import { catchError, firstValueFrom, Observable, of } from 'rxjs';
 
 @Injectable({
@@ -11,7 +16,7 @@ export class ApiService {
   private readonly httpClient = inject(HttpClient);
 
   // Game CRUD
-  async createGame(game: GameModel) {
+  async createGame(game: GameFormViewModel) {
     const response = await firstValueFrom(
       this.httpClient
         .post(`${API_URL}/${Endpoints.GAME}`, JSON.stringify(game), {

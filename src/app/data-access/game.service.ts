@@ -1,69 +1,71 @@
 import {
-  computed,
   effect,
   inject,
   Injectable,
   signal,
   WritableSignal,
 } from '@angular/core';
-import { LocalStorageService } from './local-storage.service';
-import { GameModel, LocalStorageKeys, TimeUnits } from '../shared/custom-types';
+import {
+  GameModel,
+  GameTypes,
+  GameFormViewModel,
+  LocalStorageKeys,
+  TimeUnits,
+} from '../shared/types';
 import { ApiService } from './api.service';
 import { getRandomPlayerColor } from '../shared/helpers';
 import { PlayerService } from './player.service';
+import { LocalStorageService } from './local-storage.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GameService {
-  private readonly localStorageService = inject(LocalStorageService);
   private readonly apiService = inject(ApiService);
   private readonly playerService = inject(PlayerService);
+  private readonly localStorageService = inject(LocalStorageService);
 
-  private readonly _game: WritableSignal<GameModel>;
-  readonly game = computed(() => this._game());
+  readonly game: WritableSignal<GameModel> = signal({
+    id: '_',
+    name: 'Time Rush',
+    turnLength: 30,
+    turnLengthUnits: TimeUnits.Seconds,
+  });
 
   constructor() {
-    this._game = signal(
-      (this.localStorageService.getItem(LocalStorageKeys.Game) ?? {
-        name: '',
-        turnLength: 0,
-        turnLengthUnits: TimeUnits.Seconds,
-        playerIds: [],
-      }) as GameModel
-    );
+    const savedGame = this.localStorageService.getItem(
+      LocalStorageKeys.Game
+    ) as GameModel | undefined;
+
+    if (savedGame) {
+      this.game.set(savedGame);
+    }
   }
 
-  // update local storage whenever game info changes
-  private readonly localStorageGameUpdateEffect = effect(() =>
-    this.localStorageService.setItem(LocalStorageKeys.Game, this._game())
-  );
+  readonly updateLocalStorageOnGameUpdatesEffect = effect(() => {
+    this.localStorageService.setItem(LocalStorageKeys.Game, this.game());
+  });
 
-  updateLocalGame(gameUpdates: Partial<GameModel>) {
-    this._game.update((game) => ({ ...game, ...gameUpdates }));
-  }
-
-  async createGame(game: GameModel) {
-    const hostPlayer = await this.playerService.createPlayer({
-      name: 'Host',
-      color: getRandomPlayerColor(),
-    });
-
-    let newGame: GameModel | undefined;
-
-    if (hostPlayer?.id) {
-      const _game: GameModel = {
-        ...game,
-        playerIds: [hostPlayer.id],
-        hostPlayerId: hostPlayer.id,
-      };
-
-      newGame = await this.apiService.createGame(_game);
+  async createGame(newGame: GameFormViewModel) {
+    if (newGame.gameType === GameTypes.Local) {
+      this.game.set({ ...newGame, id: '_' });
+      return newGame;
     }
 
-    if (newGame) {
-      this._game.set(newGame);
-    }
+    const _newGame = await this.apiService.createGame(newGame);
+
+    // if (_newGame?.id) {
+    //   const hostPlayer = await this.playerService.createPlayer({
+    //     name: 'Host',
+    //     color: getRandomPlayerColor(),
+    //     isHost: true,
+    //     gameId: _newGame.id,
+    //   });
+
+    //   if (hostPlayer) {
+    //     this.game.set(newGame);
+    //   }
+    // }
 
     return newGame;
   }

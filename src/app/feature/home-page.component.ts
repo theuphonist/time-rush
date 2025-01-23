@@ -5,9 +5,6 @@ import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { API_URL } from '../shared/constants';
-import { ApiService } from '../data-access/api.service';
-import { TimeUnits } from '../shared/custom-types';
 
 @Component({
   selector: 'time-rush-home-page',
@@ -15,39 +12,39 @@ import { TimeUnits } from '../shared/custom-types';
   imports: [HeaderComponent, InputTextModule, FormsModule, ButtonModule],
   template: `
     <time-rush-header text="Time Rush" />
-    <!-- Session code input -->
+    <!-- Join code input -->
     <div class="mt-page-content">
-      <label for="session-code">
+      <label for="join-code">
         <span class="text-600 text-lg font-semibold"
-          >Enter a session code:</span
+          >Join an existing game:</span
         >
       </label>
       <div class="flex mt-2 mb-1 gap-2">
         <input
           class="w-full"
-          id="session-code"
+          id="join-code"
           type="text"
-          aria-describedby="session-code"
+          aria-describedby="join-code-description"
           pInputText
-          placeholder="Session code"
-          [(ngModel)]="sessionCode"
+          placeholder="Join code"
+          [(ngModel)]="joinCode"
         />
         <p-button
           icon="pi pi-arrow-right"
-          (onClick)="onJoinSessionButtonClick()"
+          (onClick)="onJoinGameButtonClick()"
         ></p-button>
       </div>
-      <small id="session-code"
+      <small id="join-code-description"
         ><span class="text-500"
-          >What is the code for the session you want to join?</span
+          >What is the code for the game you want to join?</span
         ></small
       >
     </div>
     <p class="font-semibold text-xl text-center my-5">OR</p>
     <p-button
       styleClass="w-full font-bold"
-      label="Start a new session"
-      (click)="onStartSessionButtonClick()"
+      label="Create a new game"
+      (click)="onCreateGameButtonClick()"
     />
   `,
 })
@@ -55,9 +52,9 @@ export class HomePageComponent {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
 
-  sessionCode: string | undefined;
+  joinCode: string | undefined;
 
-  onJoinSessionButtonClick() {
+  onJoinGameButtonClick() {
     this.messageService.add({
       severity: 'info',
       summary: 'Not so fast!',
@@ -65,7 +62,7 @@ export class HomePageComponent {
     });
   }
 
-  onStartSessionButtonClick() {
+  onCreateGameButtonClick() {
     this.router.navigate(['/new-game']);
   }
 }

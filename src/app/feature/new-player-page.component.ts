@@ -1,12 +1,20 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
-import { FormsModule } from '@angular/forms';
+import {
+  FormBuilder,
+  FormsModule,
+  ReactiveFormsModule,
+  Validators,
+} from '@angular/forms';
 import { HeaderComponent } from '../shared/header.component';
-import { PlayerService } from '../data-access/player.service';
-import { PlayerIconComponent } from '../shared/player-icon.component';
 import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
-import { PlayerColors } from '../shared/custom-types';
+import { ColorPickerModule } from 'primeng/colorpicker';
+import { PlayerIconComponent } from '../shared/player-icon.component';
+import { MessageService } from 'primeng/api';
+import { PlayerFormViewModel, ToFormGroup } from '../shared/types';
+import { PlayerService } from '../data-access/player.service';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'time-rush-new-player-page',
@@ -14,106 +22,91 @@ import { PlayerColors } from '../shared/custom-types';
   imports: [
     HeaderComponent,
     FormsModule,
+    ReactiveFormsModule,
     InputTextModule,
-    PlayerIconComponent,
     ButtonModule,
+    ColorPickerModule,
+    PlayerIconComponent,
   ],
   template: `<time-rush-header
       text="New Player"
       alwaysSmall
-      routeToPreviousPage="/new-game"
+      routeToPreviousPage="/manage-players"
     />
-    <!-- Player name input -->
-    <div class="mt-page-content">
-      <label>
-        <span class="text-600 text-lg font-semibold">Player Name</span>
-        <input
-          class="w-full mt-2 mb-1"
-          type="text"
-          aria-describedby="player-name-help"
-          pInputText
-          placeholder="Player name"
-          [(ngModel)]="playerName"
-        />
-      </label>
-      <small id="player-name-help"
-        ><span class="text-500">What's this player's name?</span></small
-      >
-    </div>
-
-    <!-- Player color selection -->
-    <div class="mt-5">
-      <h3 class="text-600 text-lg font-semibold mt-0 mb-4">Player Color</h3>
-      <div class="grid">
-        @for (playerColor of playerColorArray(); track playerColor.value) {
-        <div
-          [class]="
-            'col-3 py-1 my-2 border-round ' +
-            (selectedColor === playerColor.value ? 'selected' : '')
-          "
-          [id]="playerColor.value"
-          (click)="selectColor($event)"
-        >
-          <time-rush-player-icon
-            [playerColor]="playerColor.value"
-            [disabled]="playerColor.disabled"
-            class="flex justify-content-center"
+    <form [formGroup]="newPlayerForm" (ngSubmit)="onCreatePlayerButtonClick()">
+      <!-- Player name input -->
+      <div class="mt-page-content">
+        <label>
+          <span class="text-600 text-lg font-semibold">Player Name</span>
+          <input
+            class="w-full mt-2 mb-1"
+            type="text"
+            aria-describedby="player-name-help"
+            pInputText
+            placeholder="Player name"
+            formControlName="name"
           />
-        </div>
-        }
+        </label>
+        <small id="player-name-help"
+          ><span class="text-500">What's this player's name?</span></small
+        >
       </div>
-    </div>
 
-    <p-button
-      styleClass="w-full mt-6"
-      [label]="'Create ' + playerName || 'Player'"
-      [disabled]="!playerName || !selectedColor"
-      (click)="createPlayer()"
-    /> `,
-  styles: `.selected {
-    outline: solid var(--surface-300);
-    }`,
+      <!-- Player color selection -->
+      <div class="mt-5">
+        <h3 class="text-600 text-lg font-semibold mt-0 mb-4">Player Color</h3>
+        <div class="flex align-items-center">
+          <p-colorPicker [inline]="true" formControlName="color" />
+          <div class="w-full flex justify-content-center">
+            <time-rush-player-icon
+              [playerColor]="colorControlSignal() ?? '#FF0000'"
+            />
+          </div>
+        </div>
+      </div>
+
+      <p-button
+        styleClass="w-full mt-6"
+        [label]="'Create ' + (nameControlSignal() || 'Player')"
+        type="submit"
+        [disabled]="!newPlayerForm.valid"
+      />
+    </form> `,
 })
 export class NewPlayerPageComponent {
-  private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
+  private readonly messageService = inject(MessageService);
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly playerService = inject(PlayerService);
 
-  private readonly players = this.playerService.localPlayers;
-
-  playerName: string | undefined;
-
-  // make the PlayerColors enum available in component template
-  readonly PlayerColors = PlayerColors;
-  readonly disabledColors = computed(() =>
-    this.players().map((player) => player.color)
-  );
-  readonly playerColorArray = computed(() =>
-    Object.values(PlayerColors).map((color) => ({
-      value: color,
-      disabled: this.disabledColors().includes(color),
-    }))
-  );
-
-  selectedColor: string | undefined | null;
-
-  selectColor(ev: Event) {
-    let target = ev.target as HTMLElement;
-
-    while (target.parentElement && !target.id) {
-      target = target.parentElement;
-    }
-
-    if (target.id && !this.disabledColors().includes(target.id)) {
-      this.selectedColor = target.id;
-    }
-  }
-
-  createPlayer(): void {
-    this.playerService.createLocalPlayer({
-      name: this.playerName!,
-      color: this.selectedColor!,
+  readonly newPlayerForm: ToFormGroup<PlayerFormViewModel> =
+    this.formBuilder.group({
+      name: ['', Validators.required],
+      color: ['#FF0000', Validators.required],
     });
 
-    this.router.navigate(['/new-game']);
+  readonly nameControlSignal = toSignal(
+    this.newPlayerForm.get('name')!.valueChanges
+  );
+
+  readonly colorControlSignal = toSignal(
+    this.newPlayerForm.get('color')!.valueChanges
+  );
+
+  onCreatePlayerButtonClick(): void {
+    if (!this.newPlayerForm.valid) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Error creating player',
+        detail: 'Missing required fields.',
+      });
+      return;
+    }
+
+    this.playerService.createPlayer(
+      this.newPlayerForm.value as PlayerFormViewModel
+    );
+
+    this.router.navigate(['/manage-players']);
   }
 }

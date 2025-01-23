@@ -3,7 +3,7 @@ import { interval, map, of, startWith, switchMap } from 'rxjs';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
 import { TimeWithColonsPipe } from './time-with-colons.pipe';
 import { FontColorClassFromBackgroundPipe } from './font-color-class-from-background.pipe';
-import { PlayerModel, TimeUnits } from './custom-types';
+import { PlayerModel, TimeUnits } from './types';
 
 @Component({
   selector: 'time-rush-player-timer',

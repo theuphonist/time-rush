@@ -13,14 +13,14 @@ import { RouterLink } from '@angular/router';
     <h1 class="my-0 w-full large-header">{{ text() }}</h1>
     } @else {
     <div class="w-full grid">
-      <div class="col-4 pl-5">
+      <div class="col-2 text-center">
         @if (routeToPreviousPage()){
         <a [routerLink]="routeToPreviousPage()">
           <i class="pi pi-arrow-left text-primary"></i>
         </a>
         }
       </div>
-      <div class="col-4 text-center">
+      <div class="col-8 text-center">
         <h3 class="my-0 justify-self-center small-header">
           {{ text() }}
         </h3>

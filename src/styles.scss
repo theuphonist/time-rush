@@ -31,3 +31,15 @@ body {
   width: calc(100vw - 2 * var(--base-x-padding-margin));
   top: var(--base-top-padding-margin);
 }
+
+.p-colorpicker-panel .p-colorpicker-color {
+  background: transparent url("assets/img/custom-color.png") no-repeat left top;
+}
+
+.p-colorpicker-panel .p-colorpicker-hue {
+  background: transparent url("assets/img/custom-hue.png") no-repeat left top !important;
+}
+
+.p-confirm-dialog-message {
+  margin-left: 0;
+}
