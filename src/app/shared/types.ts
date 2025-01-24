@@ -40,10 +40,12 @@ export enum GameTypes {
   Local = 'local',
   Online = 'online',
 }
+
 export interface PlayerFormViewModel {
   name: string;
   color: string;
 }
+
 export interface GameFormViewModel {
   name: string;
   turnLength: number;

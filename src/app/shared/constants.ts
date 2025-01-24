@@ -3,6 +3,8 @@ export const WS_URL = 'http://localhost:8080/websocket';
 export const COMMON_HEADERS = {
   'Content-Type': 'application/json',
 };
+
+export const CLEAR_LOCAL_STORAGE_JOIN_CODE = 'clearlocalstorage';
 export const defaultPlayerColors: `#${string}`[] = [
   '#F34141',
   '#F38141',

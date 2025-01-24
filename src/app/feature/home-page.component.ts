@@ -1,10 +1,11 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, signal } from '@angular/core';
 import { HeaderComponent } from '../shared/header.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
+import { CLEAR_LOCAL_STORAGE_JOIN_CODE } from '../shared/constants';
 
 @Component({
   selector: 'time-rush-home-page',
@@ -52,9 +53,15 @@ export class HomePageComponent {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
 
-  joinCode: string | undefined;
+  readonly joinCode = signal('');
 
   onJoinGameButtonClick() {
+    if (this.joinCode() === CLEAR_LOCAL_STORAGE_JOIN_CODE) {
+      localStorage.clear();
+      window.location.reload();
+      return;
+    }
+
     this.messageService.add({
       severity: 'info',
       summary: 'Not so fast!',

@@ -17,7 +17,7 @@ import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
   ],
   template: `
     <time-rush-header
-      [text]="game()?.name ?? 'Time Rush'"
+      [text]="game().name || 'Time Rush'"
       alwaysSmall
       routeToPreviousPage="/new-game"
     />
