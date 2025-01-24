@@ -20,8 +20,12 @@ import {
   ToFormGroup,
   LocalStorageKeys,
   GameFormViewModel,
+  GameModel,
 } from '../shared/types';
 import { LocalStorageService } from '../data-access/local-storage.service';
+import { PlayerService } from '../data-access/player.service';
+import { getRandomPlayerColor } from '../shared/helpers';
+import { toSignal } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'time-rush-new-game-page',
@@ -111,7 +115,11 @@ import { LocalStorageService } from '../data-access/local-storage.service';
         <div
           class="w-full font-semibold flex justify-content-center align-items-center gap-2"
         >
-          <span>Add players</span><i class="pi pi-arrow-right"></i>
+          @if (gameTypeControlSignal() === GameTypes.Local) {
+          <span>Add players</span>
+          } @else {
+          <span>Game lobby</span>
+          }<i class="pi pi-arrow-right"></i>
         </div>
       </p-button>
     </form>
@@ -132,14 +140,19 @@ export class NewGamePageComponent {
   private readonly messageService = inject(MessageService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly localStorageService = inject(LocalStorageService);
+  private readonly playerService = inject(PlayerService);
 
   readonly newGameForm: ToFormGroup<GameFormViewModel> = this.formBuilder.group(
     {
       name: ['', Validators.required],
-      turnLength: [0, Validators.required],
+      turnLength: [0, [Validators.required, Validators.min(1)]],
       turnLengthUnits: [TimeUnits.Seconds, Validators.required],
       gameType: [GameTypes.Local, Validators.required],
     }
+  );
+
+  readonly gameTypeControlSignal = toSignal(
+    this.newGameForm.get('gameType')!.valueChanges
   );
 
   readonly inputTimer: WritableSignal<ReturnType<typeof setTimeout> | null> =
@@ -178,7 +191,7 @@ export class NewGamePageComponent {
     );
   }
 
-  onStartGameButtonClick(): void {
+  async onStartGameButtonClick(): Promise<void> {
     // all game props should be defined here, but just in case
     if (!this.newGameForm.valid) {
       this.messageService.add({
@@ -193,32 +206,31 @@ export class NewGamePageComponent {
 
     this.localStorageService.setItem(LocalStorageKeys.NewGameForm, newGame);
 
-    if (newGame.gameType === GameTypes.Local) {
-      this.gameService.createGame(newGame);
-      this.router.navigate(['/manage-players']);
+    const createdGame = await this.gameService.createGame(newGame);
+
+    if (!createdGame) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Failed to create game',
+        detail: 'An unknown error occurred.  Please try again.',
+      });
       return;
     }
 
-    this.gameService.createGame(newGame).then(
-      (newGame) => {
-        if (!newGame) {
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Failed to create game',
-            detail: 'An unknown error occurred',
-          });
-          return;
-        }
+    if (newGame.gameType === GameTypes.Online) {
+      this.playerService.createPlayer(
+        {
+          name: 'Host',
+          color: getRandomPlayerColor(),
+        },
+        createdGame.id,
+        true
+      );
+      this.router.navigate(['/lobby']);
+      return;
+    }
 
-        this.router.navigate(['/lobby']);
-      },
-      (err) =>
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Failed to create game',
-          detail: 'An unknown error occurred',
-        })
-    );
+    this.router.navigate(['/manage-players']);
   }
 
   readonly GameTypes = GameTypes;

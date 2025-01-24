@@ -6,6 +6,7 @@ import {
   PlayerModel,
   Endpoints,
   GameFormViewModel,
+  PlayerFormViewModel,
 } from '../shared/types';
 import { catchError, firstValueFrom, Observable, of } from 'rxjs';
 
@@ -33,10 +34,19 @@ export class ApiService {
   }
 
   // Player CRUD
-  async createPlayer(player: PlayerModel) {
+  async createPlayer(
+    player: PlayerFormViewModel,
+    gameId: GameModel['id'],
+    isHost: boolean = false
+  ) {
+    const _player = {
+      ...player,
+      gameId,
+      isHost,
+    };
     const response = await firstValueFrom(
       this.httpClient
-        .post(`${API_URL}/${Endpoints.PLAYER}`, JSON.stringify(player), {
+        .post(`${API_URL}/${Endpoints.PLAYER}`, JSON.stringify(_player), {
           headers: COMMON_HEADERS,
         })
         .pipe(catchError(() => of(undefined)))

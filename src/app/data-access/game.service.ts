@@ -30,6 +30,8 @@ export class GameService {
     name: 'Time Rush',
     turnLength: 30,
     turnLengthUnits: TimeUnits.Seconds,
+    joinCode: '_',
+    hostPlayerId: '_',
   });
 
   constructor() {
@@ -46,27 +48,22 @@ export class GameService {
     this.localStorageService.setItem(LocalStorageKeys.Game, this.game());
   });
 
-  async createGame(newGame: GameFormViewModel) {
+  async createGame(newGame: GameFormViewModel): Promise<GameModel | undefined> {
+    let _newGame: GameModel | undefined;
     if (newGame.gameType === GameTypes.Local) {
-      this.game.set({ ...newGame, id: '_' });
-      return newGame;
+      _newGame = {
+        ...newGame,
+        id: '_',
+        joinCode: '_',
+      };
+    } else {
+      _newGame = await this.apiService.createGame(newGame);
     }
 
-    const _newGame = await this.apiService.createGame(newGame);
+    if (_newGame) {
+      this.game.set(_newGame);
+    }
 
-    // if (_newGame?.id) {
-    //   const hostPlayer = await this.playerService.createPlayer({
-    //     name: 'Host',
-    //     color: getRandomPlayerColor(),
-    //     isHost: true,
-    //     gameId: _newGame.id,
-    //   });
-
-    //   if (hostPlayer) {
-    //     this.game.set(newGame);
-    //   }
-    // }
-
-    return newGame;
+    return _newGame;
   }
 }

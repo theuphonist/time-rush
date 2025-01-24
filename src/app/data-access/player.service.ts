@@ -10,6 +10,7 @@ import {
   LocalStorageKeys,
   PlayerModel,
   PlayerFormViewModel,
+  GameModel,
 } from '../shared/types';
 import { ApiService } from './api.service';
 import { LocalStorageService } from './local-storage.service';
@@ -34,6 +35,14 @@ export class PlayerService {
   }
 
   readonly players: WritableSignal<PlayerModel[]> = signal([]);
+
+  readonly player: WritableSignal<PlayerModel> = signal({
+    id: '',
+    name: '',
+    color: '',
+    gameId: '',
+    isHost: false,
+  });
 
   readonly updateLocalStorageOnPlayerUpdatesEffect = effect(() => {
     this.localStorageService.setItem(LocalStorageKeys.Players, this.players());
@@ -87,9 +96,29 @@ export class PlayerService {
     this.activePlayerId.set(players[nextPlayerIndex].id);
   }
 
-  createPlayer(newPlayer: PlayerFormViewModel) {
-    const _newPlayer: PlayerModel = { ...newPlayer, id: ulid() };
-    this.players.update((players) => [...players, _newPlayer]);
+  async createPlayer(
+    newPlayer: PlayerFormViewModel,
+    gameId?: GameModel['id'],
+    isHost: boolean = false
+  ) {
+    let _newPlayer: PlayerModel | undefined;
+
+    // assume the player is local-only if no gameId is provided
+    if (!gameId) {
+      _newPlayer = { ...newPlayer, id: ulid(), gameId: '_', isHost: false };
+    } else {
+      _newPlayer = await this.apiService.createPlayer(
+        newPlayer,
+        gameId,
+        isHost
+      );
+    }
+
+    if (_newPlayer) {
+      this.player.set(_newPlayer);
+    }
+
+    return _newPlayer;
   }
 
   updatePlayer(

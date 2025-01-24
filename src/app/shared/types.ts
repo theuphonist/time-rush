@@ -11,13 +11,15 @@ export interface GameModel {
   name: string;
   turnLength: number;
   turnLengthUnits: TimeUnits;
-  joinCode?: string;
+  joinCode: string;
 }
 
 export interface PlayerModel {
   id: string;
   name: string;
   color: string;
+  gameId: string;
+  isHost: boolean;
 }
 
 export enum TimeUnits {
