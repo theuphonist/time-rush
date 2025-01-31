@@ -1,5 +1,6 @@
 import {
   computed,
+  DestroyRef,
   effect,
   inject,
   Injectable,
@@ -11,13 +12,18 @@ import {
   PlayerFormViewModel,
   GameModel,
   SessionStorageKeys,
+  WebSocketActions,
+  WebSocketMessage,
 } from '../shared/types';
 import { ApiService } from './api.service';
 import { ulid } from 'ulid';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { GameService } from './game.service';
 import { SessionStorageService } from './session-storage.service';
-import { LOCAL_GAME_ID } from '../shared/constants';
+import { BASE_OUTGOING_WS_TOPIC, LOCAL_GAME_ID } from '../shared/constants';
+import { WebSocketService } from './web-socket.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -26,6 +32,8 @@ export class PlayerService {
   private readonly apiService = inject(ApiService);
   private readonly gameService = inject(GameService);
   private readonly sessionStorageService = inject(SessionStorageService);
+  private readonly webSocketService = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
 
   readonly localPlayers: WritableSignal<PlayerModel[]>;
   readonly onlinePlayers: WritableSignal<PlayerModel[]>;
@@ -79,6 +87,13 @@ export class PlayerService {
     const savedGame = this.gameService.game();
 
     this.getOnlinePlayers(savedGame.id);
+
+    this.webSocketService.messages$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        filter((message) => message.from !== this.player().id)
+      )
+      .subscribe((message) => this.handleMessage(message));
   }
 
   readonly updateSessionStorageOnLocalPlayerUpdatesEffect = effect(() => {
@@ -137,6 +152,11 @@ export class PlayerService {
     if (_newPlayer) {
       this.onlinePlayers.update((players) => [...players, _newPlayer]);
       this.player.set(_newPlayer);
+      this.webSocketService.sendMessage(`${BASE_OUTGOING_WS_TOPIC}/${gameId}`, {
+        from: _newPlayer.id,
+        action: WebSocketActions.PlayerAdded,
+        data: _newPlayer,
+      });
     }
 
     return _newPlayer;
@@ -184,5 +204,14 @@ export class PlayerService {
     const players = this.players();
     moveItemInArray(players, previousIndex, currentIndex);
     this.localPlayers.set(players);
+  }
+
+  handleMessage(message: WebSocketMessage) {
+    if (message.action === WebSocketActions.PlayerAdded) {
+      this.onlinePlayers.update((onlinePlayers) => [
+        ...onlinePlayers,
+        message.data as PlayerModel,
+      ]);
+    }
   }
 }

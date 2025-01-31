@@ -1,10 +1,16 @@
+// API
 export const API_URL = 'http://192.168.1.110:8080'; // eventually will be updated with a real domain
-export const WS_URL = 'http://localhost:8080/websocket';
 export const COMMON_HEADERS = {
   'Content-Type': 'application/json',
 };
-export const CLEAR_LOCAL_STORAGE_JOIN_CODE = 'clearlocalstorage';
-export const defaultPlayerColors: `#${string}`[] = [
+
+// WebSockets
+export const WS_URL = 'http://192.168.1.110:8080/messaging';
+export const BASE_INCOMING_WS_TOPIC = '/game';
+export const BASE_OUTGOING_WS_TOPIC = '/timerush';
+
+// Misc
+export const DEFAULT_PLAYER_COLORS: `#${string}`[] = [
   '#F34141',
   '#F38141',
   '#F3CC41',

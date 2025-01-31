@@ -1,36 +1,52 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Client, StompSubscription } from '@stomp/stompjs';
 import { WS_URL } from '../shared/constants';
-
-interface WebSocketMessage {
-  content: string;
-  from: string;
-}
+import { Subject } from 'rxjs';
+import { WebSocketMessage } from '../shared/types';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WebSocketService implements OnDestroy {
-  private readonly stompClient: Client = new Client({
-    brokerURL: WS_URL,
-  });
+  private readonly stompClient: Client;
 
   private readonly subscriptions: StompSubscription[] = [];
 
-  ngOnDestroy() {
-    this.disconnect();
+  readonly messages$ = new Subject<WebSocketMessage>();
 
-    for (const subscription of this.subscriptions) {
-      subscription.unsubscribe();
-    }
+  constructor() {
+    this.stompClient = new Client({
+      brokerURL: WS_URL,
+    });
+
+    this.connect();
   }
 
-  connect(): void {
+  ngOnDestroy() {
+    this.disconnect();
+    this.unsubscribeAll();
+  }
+
+  private connect(): void {
     this.stompClient.activate();
   }
 
-  disconnect(): void {
+  private disconnect(): void {
     this.stompClient.deactivate();
+  }
+
+  subscribe(topic: string) {
+    this.subscriptions.push(
+      this.stompClient.subscribe(topic, (message) => {
+        this.messages$.next(JSON.parse(message.body) as WebSocketMessage);
+      })
+    );
+  }
+
+  unsubscribeAll() {
+    for (const subscription of this.subscriptions) {
+      subscription.unsubscribe();
+    }
   }
 
   sendMessage(destination: string, message: WebSocketMessage) {

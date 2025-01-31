@@ -77,7 +77,7 @@ export class HomePageComponent {
       return;
     }
 
-    const game = await this.gameService.getGameByJoinCode(this.joinCode());
+    const game = await this.gameService.joinOnlineGame(this.joinCode());
 
     if (!game) {
       this.messageService.add({

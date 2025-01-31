@@ -1,8 +1,8 @@
-import { defaultPlayerColors } from './constants';
+import { DEFAULT_PLAYER_COLORS } from './constants';
 
-export function getRandomPlayerColor(): (typeof defaultPlayerColors)[number] {
-  const randomIndex = Math.floor(Math.random() * defaultPlayerColors.length);
-  return defaultPlayerColors[randomIndex];
+export function getRandomPlayerColor(): (typeof DEFAULT_PLAYER_COLORS)[number] {
+  const randomIndex = Math.floor(Math.random() * DEFAULT_PLAYER_COLORS.length);
+  return DEFAULT_PLAYER_COLORS[randomIndex];
 }
 
 export function getContrastingColorClass(colorHex: string) {
