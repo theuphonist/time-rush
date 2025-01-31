@@ -1,11 +1,14 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { HeaderComponent } from '../shared/header.component';
 import { InputTextModule } from 'primeng/inputtext';
 import { FormsModule } from '@angular/forms';
 import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { CLEAR_LOCAL_STORAGE_JOIN_CODE } from '../shared/constants';
+import { JOIN_CODE_REGEX } from '../shared/constants';
+import { GameService } from '../data-access/game.service';
+import { PlayerService } from '../data-access/player.service';
+import { GameTypes } from '../shared/types';
 
 @Component({
   selector: 'time-rush-home-page',
@@ -32,6 +35,7 @@ import { CLEAR_LOCAL_STORAGE_JOIN_CODE } from '../shared/constants';
         />
         <p-button
           icon="pi pi-arrow-right"
+          [disabled]="joinGameButtonDisabled()"
           (onClick)="onJoinGameButtonClick()"
         ></p-button>
       </div>
@@ -47,26 +51,46 @@ import { CLEAR_LOCAL_STORAGE_JOIN_CODE } from '../shared/constants';
       label="Create a new game"
       (click)="onCreateGameButtonClick()"
     />
+    <p-button styleClass="w-full font-bold mt-6" label="Test" />
   `,
 })
 export class HomePageComponent {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
+  private readonly gameService = inject(GameService);
+  private readonly playerService = inject(PlayerService);
 
   readonly joinCode = signal('');
 
-  onJoinGameButtonClick() {
-    if (this.joinCode() === CLEAR_LOCAL_STORAGE_JOIN_CODE) {
-      localStorage.clear();
-      window.location.reload();
+  readonly joinGameButtonDisabled = computed(
+    () => !JOIN_CODE_REGEX.test(this.joinCode())
+  );
+
+  async onJoinGameButtonClick() {
+    // shouldn't happen, but just in case
+    if (!JOIN_CODE_REGEX.test(this.joinCode())) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Unable to join game',
+        detail: `${this.joinCode()} is an invalid join code.`,
+      });
       return;
     }
 
-    this.messageService.add({
-      severity: 'info',
-      summary: 'Not so fast!',
-      detail: "That button doesn't do anything yet",
-    });
+    const game = await this.gameService.getGameByJoinCode(this.joinCode());
+
+    if (!game) {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Unable to join game',
+        detail: `Could not find game with join code ${this.joinCode()}.`,
+      });
+      return;
+    }
+
+    this.playerService.getOnlinePlayers(game.id);
+
+    this.router.navigate([`/new-player/${GameTypes.Online}`]);
   }
 
   onCreateGameButtonClick() {

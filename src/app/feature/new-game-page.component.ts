@@ -18,11 +18,10 @@ import {
   TimeUnits,
   GameTypes,
   ToFormGroup,
-  LocalStorageKeys,
+  SessionStorageKeys,
   GameFormViewModel,
-  GameModel,
 } from '../shared/types';
-import { LocalStorageService } from '../data-access/local-storage.service';
+import { SessionStorageService } from '../data-access/session-storage.service';
 import { PlayerService } from '../data-access/player.service';
 import { getRandomPlayerColor } from '../shared/helpers';
 import { toSignal } from '@angular/core/rxjs-interop';
@@ -139,7 +138,7 @@ export class NewGamePageComponent {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly formBuilder = inject(FormBuilder);
-  private readonly localStorageService = inject(LocalStorageService);
+  private readonly sessionStorageService = inject(SessionStorageService);
   private readonly playerService = inject(PlayerService);
 
   readonly newGameForm: ToFormGroup<GameFormViewModel> = this.formBuilder.group(
@@ -166,8 +165,8 @@ export class NewGamePageComponent {
   readonly timeUnits = Object.values(TimeUnits);
 
   ngOnInit(): void {
-    const lastNewGameForm = this.localStorageService.getItem(
-      LocalStorageKeys.NewGameForm
+    const lastNewGameForm = this.sessionStorageService.getItem(
+      SessionStorageKeys.NewGameForm
     ) as Partial<GameFormViewModel>;
 
     if (lastNewGameForm) {
@@ -185,8 +184,8 @@ export class NewGamePageComponent {
   }
 
   onSaveQueueTimerExpired(): void {
-    this.localStorageService.setItem(
-      LocalStorageKeys.NewGameForm,
+    this.sessionStorageService.setItem(
+      SessionStorageKeys.NewGameForm,
       this.newGameForm.value
     );
   }
@@ -204,9 +203,17 @@ export class NewGamePageComponent {
 
     const newGame = this.newGameForm.value as GameFormViewModel;
 
-    this.localStorageService.setItem(LocalStorageKeys.NewGameForm, newGame);
+    this.sessionStorageService.setItem(SessionStorageKeys.NewGameForm, newGame);
 
-    const createdGame = await this.gameService.createGame(newGame);
+    if (newGame.gameType === GameTypes.Local) {
+      this.gameService.createLocalGame(newGame);
+      this.router.navigate(['/manage-players']);
+      return;
+    }
+
+    this.playerService.clearOnlinePlayers();
+
+    const createdGame = await this.gameService.createOnlineGame(newGame);
 
     if (!createdGame) {
       this.messageService.add({
@@ -217,20 +224,16 @@ export class NewGamePageComponent {
       return;
     }
 
-    if (newGame.gameType === GameTypes.Online) {
-      this.playerService.createPlayer(
-        {
-          name: 'Host',
-          color: getRandomPlayerColor(),
-        },
-        createdGame.id,
-        true
-      );
-      this.router.navigate(['/lobby']);
-      return;
-    }
+    this.playerService.createOnlinePlayer(
+      {
+        name: 'Host',
+        color: getRandomPlayerColor(),
+      },
+      createdGame.id,
+      true
+    );
 
-    this.router.navigate(['/manage-players']);
+    this.router.navigate(['/lobby']);
   }
 
   readonly GameTypes = GameTypes;

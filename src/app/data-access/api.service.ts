@@ -8,7 +8,7 @@ import {
   GameFormViewModel,
   PlayerFormViewModel,
 } from '../shared/types';
-import { catchError, firstValueFrom, Observable, of } from 'rxjs';
+import { catchError, firstValueFrom, of } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -17,7 +17,7 @@ export class ApiService {
   private readonly httpClient = inject(HttpClient);
 
   // Game CRUD
-  async createGame(game: GameFormViewModel) {
+  async createGame(game: GameFormViewModel): Promise<GameModel | undefined> {
     const response = await firstValueFrom(
       this.httpClient
         .post(`${API_URL}/${Endpoints.GAME}`, JSON.stringify(game), {
@@ -29,8 +29,16 @@ export class ApiService {
     return response as GameModel | undefined;
   }
 
-  readGame(joinCode: GameModel['joinCode']): Observable<Object> {
-    return this.httpClient.get(`${API_URL}/${Endpoints.GAME}/${joinCode}`);
+  async getGameByJoinCode(
+    joinCode: GameModel['joinCode']
+  ): Promise<GameModel | undefined> {
+    const response = await firstValueFrom(
+      this.httpClient
+        .get(`${API_URL}/${Endpoints.GAME}?joinCode=${joinCode}`)
+        .pipe(catchError(() => of(undefined)))
+    );
+
+    return response as GameModel | undefined;
   }
 
   // Player CRUD
@@ -53,5 +61,17 @@ export class ApiService {
     );
 
     return response as PlayerModel | undefined;
+  }
+
+  async getPlayersByGameId(gameId: GameModel['id']) {
+    const response = await firstValueFrom(
+      this.httpClient
+        .get(`${API_URL}/${Endpoints.PLAYER}?gameId=${gameId}`, {
+          headers: COMMON_HEADERS,
+        })
+        .pipe(catchError(() => of(undefined)))
+    );
+
+    return response as PlayerModel[] | undefined;
   }
 }

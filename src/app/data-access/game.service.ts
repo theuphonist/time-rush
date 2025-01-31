@@ -7,26 +7,23 @@ import {
 } from '@angular/core';
 import {
   GameModel,
-  GameTypes,
   GameFormViewModel,
-  LocalStorageKeys,
+  SessionStorageKeys,
   TimeUnits,
 } from '../shared/types';
 import { ApiService } from './api.service';
-import { getRandomPlayerColor } from '../shared/helpers';
-import { PlayerService } from './player.service';
-import { LocalStorageService } from './local-storage.service';
+import { SessionStorageService } from './session-storage.service';
+import { LOCAL_GAME_ID } from '../shared/constants';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GameService {
   private readonly apiService = inject(ApiService);
-  private readonly playerService = inject(PlayerService);
-  private readonly localStorageService = inject(LocalStorageService);
+  private readonly sessionStorageService = inject(SessionStorageService);
 
   readonly game: WritableSignal<GameModel> = signal({
-    id: '_',
+    id: LOCAL_GAME_ID,
     name: 'Time Rush',
     turnLength: 30,
     turnLengthUnits: TimeUnits.Seconds,
@@ -35,8 +32,8 @@ export class GameService {
   });
 
   constructor() {
-    const savedGame = this.localStorageService.getItem(
-      LocalStorageKeys.Game
+    const savedGame = this.sessionStorageService.getItem(
+      SessionStorageKeys.Game
     ) as GameModel | undefined;
 
     if (savedGame) {
@@ -45,25 +42,38 @@ export class GameService {
   }
 
   readonly updateLocalStorageOnGameUpdatesEffect = effect(() => {
-    this.localStorageService.setItem(LocalStorageKeys.Game, this.game());
+    this.sessionStorageService.setItem(SessionStorageKeys.Game, this.game());
   });
 
-  async createGame(newGame: GameFormViewModel): Promise<GameModel | undefined> {
-    let _newGame: GameModel | undefined;
-    if (newGame.gameType === GameTypes.Local) {
-      _newGame = {
-        ...newGame,
-        id: '_',
-        joinCode: '_',
-      };
-    } else {
-      _newGame = await this.apiService.createGame(newGame);
-    }
+  // Online Game CRUD
+  async createOnlineGame(
+    newGame: GameFormViewModel
+  ): Promise<GameModel | undefined> {
+    const _newGame = await this.apiService.createGame(newGame);
 
     if (_newGame) {
       this.game.set(_newGame);
     }
 
     return _newGame;
+  }
+
+  async getGameByJoinCode(joinCode: string): Promise<GameModel | undefined> {
+    const game = await this.apiService.getGameByJoinCode(joinCode);
+
+    if (game) {
+      this.game.set(game);
+    }
+
+    return game;
+  }
+
+  // Local Game CRUD
+  createLocalGame(newGame: GameFormViewModel): void {
+    this.game.set({
+      ...newGame,
+      id: LOCAL_GAME_ID,
+      joinCode: '_',
+    });
   }
 }

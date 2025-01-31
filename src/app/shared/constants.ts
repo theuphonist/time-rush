@@ -1,9 +1,8 @@
-export const API_URL = 'http://localhost:8080';
+export const API_URL = 'http://192.168.1.110:8080'; // eventually will be updated with a real domain
 export const WS_URL = 'http://localhost:8080/websocket';
 export const COMMON_HEADERS = {
   'Content-Type': 'application/json',
 };
-
 export const CLEAR_LOCAL_STORAGE_JOIN_CODE = 'clearlocalstorage';
 export const defaultPlayerColors: `#${string}`[] = [
   '#F34141',
@@ -19,3 +18,5 @@ export const defaultPlayerColors: `#${string}`[] = [
   '#767676',
   '#181818',
 ];
+export const LOCAL_GAME_ID = '_';
+export const JOIN_CODE_REGEX = /^[A-Z0-9]{4}$/;

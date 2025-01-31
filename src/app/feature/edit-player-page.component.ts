@@ -126,7 +126,7 @@ export class EditPlayerPageComponent implements OnInit {
       return;
     }
 
-    this.playerService.updatePlayer(
+    this.playerService.updateLocalPlayer(
       this.playerId(),
       this.editPlayerForm.value as PlayerFormViewModel
     );
@@ -139,7 +139,7 @@ export class EditPlayerPageComponent implements OnInit {
       message: `Are you sure you want to delete ${this.originalPlayer().name}?`,
       header: 'Delete Player',
       accept: () => {
-        this.playerService.deletePlayer(this.playerId());
+        this.playerService.deleteLocalPlayer(this.playerId());
         this.router.navigate(['/manage-players']);
       },
       acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',

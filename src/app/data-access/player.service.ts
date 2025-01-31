@@ -7,46 +7,35 @@ import {
   WritableSignal,
 } from '@angular/core';
 import {
-  LocalStorageKeys,
   PlayerModel,
   PlayerFormViewModel,
   GameModel,
+  SessionStorageKeys,
 } from '../shared/types';
 import { ApiService } from './api.service';
-import { LocalStorageService } from './local-storage.service';
 import { ulid } from 'ulid';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
+import { GameService } from './game.service';
+import { SessionStorageService } from './session-storage.service';
+import { LOCAL_GAME_ID } from '../shared/constants';
 
 @Injectable({
   providedIn: 'root',
 })
 export class PlayerService {
   private readonly apiService = inject(ApiService);
-  private readonly localStorageService = inject(LocalStorageService);
+  private readonly gameService = inject(GameService);
+  private readonly sessionStorageService = inject(SessionStorageService);
 
-  constructor() {
-    const savedPlayers = this.localStorageService.getItem(
-      LocalStorageKeys.Players
-    ) as PlayerModel[] | undefined;
+  readonly localPlayers: WritableSignal<PlayerModel[]>;
+  readonly onlinePlayers: WritableSignal<PlayerModel[]>;
+  readonly players = computed(() =>
+    this.gameService.game().id === LOCAL_GAME_ID
+      ? this.localPlayers()
+      : this.onlinePlayers()
+  );
 
-    if (savedPlayers) {
-      this.players.set(savedPlayers);
-    }
-  }
-
-  readonly players: WritableSignal<PlayerModel[]> = signal([]);
-
-  readonly player: WritableSignal<PlayerModel> = signal({
-    id: '',
-    name: '',
-    color: '',
-    gameId: '',
-    isHost: false,
-  });
-
-  readonly updateLocalStorageOnPlayerUpdatesEffect = effect(() => {
-    this.localStorageService.setItem(LocalStorageKeys.Players, this.players());
-  });
+  readonly player: WritableSignal<PlayerModel>;
 
   readonly activePlayerId: WritableSignal<PlayerModel['id'] | undefined> =
     signal(undefined);
@@ -67,6 +56,43 @@ export class PlayerService {
     }
 
     return players[activePlayerIndex + 1];
+  });
+
+  constructor() {
+    this.localPlayers = signal(
+      (this.sessionStorageService.getItem(SessionStorageKeys.Players) ??
+        []) as PlayerModel[]
+    );
+
+    this.onlinePlayers = signal([]);
+
+    this.player = signal(
+      (this.sessionStorageService.getItem(SessionStorageKeys.Player) ?? {
+        id: '',
+        name: '',
+        color: '',
+        gameId: '',
+        isHost: false,
+      }) as PlayerModel
+    );
+
+    const savedGame = this.gameService.game();
+
+    this.getOnlinePlayers(savedGame.id);
+  }
+
+  readonly updateSessionStorageOnLocalPlayerUpdatesEffect = effect(() => {
+    this.sessionStorageService.setItem(
+      SessionStorageKeys.Players,
+      this.localPlayers()
+    );
+  });
+
+  readonly updateSessionStorageOnThisPlayerUpdates = effect(() => {
+    this.sessionStorageService.setItem(
+      SessionStorageKeys.Player,
+      this.player()
+    );
   });
 
   changeActivePlayer(nextPlayerId?: PlayerModel['id']) {
@@ -96,51 +122,67 @@ export class PlayerService {
     this.activePlayerId.set(players[nextPlayerIndex].id);
   }
 
-  async createPlayer(
+  // Online Player CRUD
+  async createOnlinePlayer(
     newPlayer: PlayerFormViewModel,
-    gameId?: GameModel['id'],
+    gameId: GameModel['id'],
     isHost: boolean = false
   ) {
-    let _newPlayer: PlayerModel | undefined;
-
-    // assume the player is local-only if no gameId is provided
-    if (!gameId) {
-      _newPlayer = { ...newPlayer, id: ulid(), gameId: '_', isHost: false };
-    } else {
-      _newPlayer = await this.apiService.createPlayer(
-        newPlayer,
-        gameId,
-        isHost
-      );
-    }
+    const _newPlayer = await this.apiService.createPlayer(
+      newPlayer,
+      gameId,
+      isHost
+    );
 
     if (_newPlayer) {
+      this.onlinePlayers.update((players) => [...players, _newPlayer]);
       this.player.set(_newPlayer);
     }
 
     return _newPlayer;
   }
 
-  updatePlayer(
+  clearOnlinePlayers() {
+    this.onlinePlayers.set([]);
+  }
+
+  getOnlinePlayers(gameId: string) {
+    this.apiService
+      .getPlayersByGameId(gameId)
+      .then((players) => this.onlinePlayers.set(players ?? []));
+  }
+
+  // Local Player CRUD
+  createLocalPlayer(newPlayer: PlayerFormViewModel) {
+    const _newPlayer = {
+      ...newPlayer,
+      id: ulid(),
+      gameId: LOCAL_GAME_ID,
+      isHost: false,
+    };
+    this.localPlayers.update((players) => [...players, _newPlayer]);
+  }
+
+  updateLocalPlayer(
     playerId: PlayerModel['id'],
     updatedPlayer: PlayerFormViewModel
   ) {
-    this.players.update((players) =>
+    this.localPlayers.update((players) =>
       players.map((player) =>
         player.id === playerId ? { ...player, ...updatedPlayer } : player
       )
     );
   }
 
-  deletePlayer(playerId: PlayerModel['id']) {
-    this.players.update((players) =>
+  deleteLocalPlayer(playerId: PlayerModel['id']) {
+    this.localPlayers.update((players) =>
       players.filter((player) => player.id !== playerId)
     );
   }
 
-  reorderPlayers(previousIndex: number, currentIndex: number) {
+  reorderLocalPlayers(previousIndex: number, currentIndex: number) {
     const players = this.players();
     moveItemInArray(players, previousIndex, currentIndex);
-    this.players.set(players);
+    this.localPlayers.set(players);
   }
 }

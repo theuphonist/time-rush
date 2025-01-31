@@ -27,10 +27,14 @@ export enum TimeUnits {
   Minutes = 'min',
 }
 
-export enum LocalStorageKeys {
-  NewGameForm = 'newGameForm',
-  Players = 'players',
+export enum SessionStorageKeys {
+  // Game
   Game = 'game',
+  NewGameForm = 'newGameForm',
+
+  // Player
+  Players = 'players',
+  Player = 'player',
 }
 
 export enum Endpoints {

@@ -1,4 +1,4 @@
-import { Component, inject } from '@angular/core';
+import { Component, inject, input } from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
 import {
   FormBuilder,
@@ -12,9 +12,10 @@ import { Router } from '@angular/router';
 import { ColorPickerModule } from 'primeng/colorpicker';
 import { PlayerIconComponent } from '../shared/player-icon.component';
 import { MessageService } from 'primeng/api';
-import { PlayerFormViewModel, ToFormGroup } from '../shared/types';
+import { GameTypes, PlayerFormViewModel, ToFormGroup } from '../shared/types';
 import { PlayerService } from '../data-access/player.service';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { GameService } from '../data-access/game.service';
 
 @Component({
   selector: 'time-rush-new-player-page',
@@ -31,7 +32,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
   template: `<time-rush-header
       text="New Player"
       alwaysSmall
-      routeToPreviousPage="/manage-players"
+      [routeToPreviousPage]="
+        gameType() === GameTypes.Local ? '/manage-players' : '/home'
+      "
     />
     <form [formGroup]="newPlayerForm" (ngSubmit)="onCreatePlayerButtonClick()">
       <!-- Player name input -->
@@ -78,6 +81,9 @@ export class NewPlayerPageComponent {
   private readonly messageService = inject(MessageService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly playerService = inject(PlayerService);
+  private readonly gameService = inject(GameService);
+
+  readonly gameType = input.required<GameTypes>();
 
   readonly newPlayerForm: ToFormGroup<PlayerFormViewModel> =
     this.formBuilder.group({
@@ -103,10 +109,22 @@ export class NewPlayerPageComponent {
       return;
     }
 
-    this.playerService.createPlayer(
-      this.newPlayerForm.value as PlayerFormViewModel
+    if (this.gameType() === GameTypes.Local) {
+      this.playerService.createLocalPlayer(
+        this.newPlayerForm.value as PlayerFormViewModel
+      );
+
+      this.router.navigate(['/manage-players']);
+      return;
+    }
+
+    this.playerService.createOnlinePlayer(
+      this.newPlayerForm.value as PlayerFormViewModel,
+      this.gameService.game().id
     );
 
-    this.router.navigate(['/manage-players']);
+    this.router.navigate(['/lobby']);
   }
+
+  readonly GameTypes = GameTypes;
 }
