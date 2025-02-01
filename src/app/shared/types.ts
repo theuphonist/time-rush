@@ -40,6 +40,7 @@ export interface PlayerModel {
   color: string;
   gameId: string;
   isHost: boolean;
+  position: number;
 }
 
 export interface PlayerFormViewModel {
@@ -49,13 +50,13 @@ export interface PlayerFormViewModel {
 
 // WebSockets
 export interface WebSocketMessage {
-  from: PlayerModel['id'];
   action: WebSocketActions;
-  data: unknown;
 }
 
 export enum WebSocketActions {
-  PlayerAdded = 'playerAdded',
+  UpdatePlayer = 'playerChange',
+  DeleteHost = 'hostDeleted',
+  StartGame = 'gameStarted',
 }
 
 // API
@@ -72,5 +73,5 @@ export enum SessionStorageKeys {
 
   // Player
   Players = 'players',
-  Player = 'player',
+  PlayerId = 'playerId',
 }

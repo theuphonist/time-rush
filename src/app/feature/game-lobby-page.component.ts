@@ -6,6 +6,8 @@ import { PlayerService } from '../data-access/player.service';
 import { GameTypes } from '../shared/types';
 import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
+import { Confirmation } from 'primeng/api';
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 
 @Component({
   selector: 'time-rush-game-lobby-page',
@@ -15,7 +17,8 @@ import { Router } from '@angular/router';
     <time-rush-header
       [text]="game().name"
       alwaysSmall
-      routeToPreviousPage="/home"
+      backButtonIcon="pi-sign-out"
+      [navigationConfirmation]="navigationConfirmation"
     />
 
     <div class="mt-page-content flex gap-6">
@@ -36,6 +39,7 @@ import { Router } from '@angular/router';
       [players]="players()"
       [player]="player()"
       [gameType]="GameTypes.Online"
+      (playerOrderChange)="onPlayerOrderChange($event)"
     />
 
     <p-button
@@ -62,11 +66,31 @@ export class GameLobbyPageComponent {
   readonly players = this.playerService.players;
   readonly player = this.playerService.player;
 
-  readonly console = console;
-
-  readonly GameTypes = GameTypes;
+  readonly navigationConfirmation: Confirmation = {
+    message:
+      "Leave this game?  If you want to return, you'll need to join as a new player.",
+    header: 'Leave Game',
+    accept: () => {
+      this.playerService.leaveOnlineGame();
+      this.router.navigate(['/home']);
+    },
+    acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',
+    rejectButtonStyleClass: 'p-button-text w-4rem',
+    acceptIcon: 'none',
+    rejectIcon: 'none',
+  };
 
   onStartGameButtonClick() {
+    this.gameService.startOnlineGame();
     this.router.navigate(['/active-game']);
   }
+
+  onPlayerOrderChange(event: CdkDragDrop<string[]>): void {
+    this.playerService.reorderOnlinePlayers(
+      event.previousIndex,
+      event.currentIndex
+    );
+  }
+
+  readonly GameTypes = GameTypes;
 }

@@ -39,7 +39,7 @@ import { GameTypes, PlayerModel } from './types';
         @if(player().id === _player.id || gameType() === GameTypes.Local) {
         <a
           class="text-primary px-2 py-2"
-          [routerLink]="'/edit-player/' + [_player.id]"
+          [routerLink]="'/edit-player/' + [_player.id] + '/' + gameType()"
         >
           <i class="pi pi-pencil"></i>
         </a>
@@ -56,14 +56,13 @@ import { GameTypes, PlayerModel } from './types';
       </div>
       }
     </div>
-
     @if(gameType() === GameTypes.Local){
     <a
       [routerLink]="'/new-player/' + GameTypes.Local"
       class="block flex align-items-center justify-content-center w-full mt-2 h-3rem surface-200 border-transparent border-round text-500 no-underline"
       ><i class="pi pi-plus"></i
     ></a>
-    } @if (listIsReorderable()) {
+    } @if (listIsReorderable() && players().length) {
     <p class="text-500 mt-2">
       <small>Drag and drop players to set turn order.</small>
     </p>
@@ -79,16 +78,10 @@ export class PlayerListComponent {
     () => this.player().isHost || this.gameType() === GameTypes.Local
   );
 
-  readonly playerOrderChange = output<{
-    previousIndex: number;
-    currentIndex: number;
-  }>();
+  readonly playerOrderChange = output<CdkDragDrop<string[]>>();
 
-  onPlayerDrop(ev: CdkDragDrop<string[]>): void {
-    this.playerOrderChange.emit({
-      previousIndex: ev.previousIndex,
-      currentIndex: ev.currentIndex,
-    });
+  onPlayerDrop(event: CdkDragDrop<string[]>): void {
+    this.playerOrderChange.emit(event);
   }
 
   readonly GameTypes = GameTypes;

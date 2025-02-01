@@ -53,10 +53,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
             placeholder="Game name"
             formControlName="name"
             (ngModelChange)="onInputChange()"
-          />
-        </label>
-        <small id="game-name-help"
-          ><span class="text-500">What should this game be called?</span></small
+          /> </label
+        ><span class="hidden" id="game-name-help"
+          >What should this game be called?</span
         >
       </div>
 
@@ -82,12 +81,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
               (ngModelChange)="onInputChange()"
               formControlName="turnLengthUnits"
             />
-          </div>
-        </label>
-        <small id="turn-length-help"
-          ><span class="text-500"
-            >What's the time limit for each turn?</span
-          ></small
+          </div> </label
+        ><span class="hidden" id="turn-length-help"
+          >What's the time limit for each turn?</span
         >
       </div>
 
@@ -96,7 +92,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
         <label>
           <span class="text-600 text-lg font-semibold">Game Type</span>
           <p-selectButton
-            styleClass="mt-3 w-full"
+            styleClass="mt-2 w-full"
             [options]="gameTypeOptions"
             [unselectable]="true"
             size="small"

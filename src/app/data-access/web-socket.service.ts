@@ -1,6 +1,6 @@
 import { Injectable, OnDestroy } from '@angular/core';
 import { Client, StompSubscription } from '@stomp/stompjs';
-import { WS_URL } from '../shared/constants';
+import { MAX_SUBSCRIBE_RETRIES, WS_URL } from '../shared/constants';
 import { Subject } from 'rxjs';
 import { WebSocketMessage } from '../shared/types';
 
@@ -10,7 +10,7 @@ import { WebSocketMessage } from '../shared/types';
 export class WebSocketService implements OnDestroy {
   private readonly stompClient: Client;
 
-  private readonly subscriptions: StompSubscription[] = [];
+  readonly subscriptions: StompSubscription[] = [];
 
   readonly messages$ = new Subject<WebSocketMessage>();
 
@@ -35,7 +35,14 @@ export class WebSocketService implements OnDestroy {
     this.stompClient.deactivate();
   }
 
-  subscribe(topic: string) {
+  subscribe(topic: string, retryNumber?: number) {
+    if (
+      !this.stompClient.connected &&
+      (retryNumber ?? 0) <= MAX_SUBSCRIBE_RETRIES
+    ) {
+      setTimeout(() => this.subscribe(topic, (retryNumber ?? 0) + 1), 1000);
+      return;
+    }
     this.subscriptions.push(
       this.stompClient.subscribe(topic, (message) => {
         this.messages$.next(JSON.parse(message.body) as WebSocketMessage);

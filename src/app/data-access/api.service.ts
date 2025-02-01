@@ -45,12 +45,14 @@ export class ApiService {
   async createPlayer(
     player: PlayerFormViewModel,
     gameId: GameModel['id'],
+    position: number,
     isHost: boolean = false
   ) {
     const _player = {
       ...player,
       gameId,
       isHost,
+      position,
     };
     const response = await firstValueFrom(
       this.httpClient
@@ -73,5 +75,29 @@ export class ApiService {
     );
 
     return response as PlayerModel[] | undefined;
+  }
+
+  async updatePlayer(playerUpdates: Partial<PlayerModel>) {
+    const response = await firstValueFrom(
+      this.httpClient
+        .put(`${API_URL}/${Endpoints.PLAYER}`, JSON.stringify(playerUpdates), {
+          headers: COMMON_HEADERS,
+        })
+        .pipe(catchError(() => of(undefined)))
+    );
+
+    return response as PlayerModel | undefined;
+  }
+
+  async deletePlayer(playerId: PlayerModel['id']) {
+    const response = await firstValueFrom(
+      this.httpClient
+        .delete(`${API_URL}/${Endpoints.PLAYER}?playerId=${playerId}`, {
+          headers: COMMON_HEADERS,
+        })
+        .pipe(catchError(() => of(undefined)))
+    );
+
+    return response as unknown;
   }
 }

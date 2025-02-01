@@ -32,6 +32,7 @@ import { GameTypes } from '../shared/types';
           pInputText
           placeholder="Join code"
           [(ngModel)]="joinCode"
+          (keydown.enter)="onJoinGameButtonClick()"
         />
         <p-button
           icon="pi pi-arrow-right"
@@ -39,10 +40,8 @@ import { GameTypes } from '../shared/types';
           (onClick)="onJoinGameButtonClick()"
         ></p-button>
       </div>
-      <small id="join-code-description"
-        ><span class="text-500"
-          >What is the code for the game you want to join?</span
-        ></small
+      <span class="hidden" id="join-code-description"
+        >What is the code for the game you want to join?</span
       >
     </div>
     <p class="font-semibold text-xl text-center my-5">OR</p>
@@ -51,7 +50,6 @@ import { GameTypes } from '../shared/types';
       label="Create a new game"
       (click)="onCreateGameButtonClick()"
     />
-    <p-button styleClass="w-full font-bold mt-6" label="Test" />
   `,
 })
 export class HomePageComponent {
@@ -72,18 +70,20 @@ export class HomePageComponent {
       this.messageService.add({
         severity: 'error',
         summary: 'Unable to join game',
-        detail: `${this.joinCode()} is an invalid join code.`,
+        detail: `${this.joinCode()} is not a valid join code.`,
       });
       return;
     }
 
-    const game = await this.gameService.joinOnlineGame(this.joinCode());
+    const upperCaseJoinCode = this.joinCode().toUpperCase();
+
+    const game = await this.gameService.joinOnlineGame(upperCaseJoinCode);
 
     if (!game) {
       this.messageService.add({
         severity: 'error',
         summary: 'Unable to join game',
-        detail: `Could not find game with join code ${this.joinCode()}.`,
+        detail: `Could not find game with join code ${upperCaseJoinCode}.`,
       });
       return;
     }

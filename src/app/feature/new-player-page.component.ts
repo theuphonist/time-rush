@@ -1,4 +1,4 @@
-import { Component, inject, input } from '@angular/core';
+import { Component, computed, inject, input } from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
 import {
   FormBuilder,
@@ -30,15 +30,23 @@ import { GameService } from '../data-access/game.service';
     PlayerIconComponent,
   ],
   template: `<time-rush-header
-      text="New Player"
+      [text]="gameType() === GameTypes.Local ? 'New Player' : 'Join Game'"
       alwaysSmall
       [routeToPreviousPage]="
         gameType() === GameTypes.Local ? '/manage-players' : '/home'
       "
     />
+    @if (gameType() === GameTypes.Online) {
+    <p class="text-lg mt-page-content">
+      You're joining
+      <span class="font-bold">{{ game().name }} ({{ game().joinCode }})</span>
+    </p>
+    }
     <form [formGroup]="newPlayerForm" (ngSubmit)="onCreatePlayerButtonClick()">
       <!-- Player name input -->
-      <div class="mt-page-content">
+      <div
+        [class]="gameType() === GameTypes.Local ? 'mt-page-content' : 'mt-5'"
+      >
         <label>
           <span class="text-600 text-lg font-semibold">Player Name</span>
           <input
@@ -50,8 +58,8 @@ import { GameService } from '../data-access/game.service';
             formControlName="name"
           />
         </label>
-        <small id="player-name-help"
-          ><span class="text-500">What's this player's name?</span></small
+        <span class="hidden" id="player-name-help"
+          >What's this player's name?</span
         >
       </div>
 
@@ -70,7 +78,7 @@ import { GameService } from '../data-access/game.service';
 
       <p-button
         styleClass="w-full mt-6"
-        [label]="'Create ' + (nameControlSignal() || 'Player')"
+        [label]="createPlayerButtonLabel()"
         type="submit"
         [disabled]="!newPlayerForm.valid"
       />
@@ -85,6 +93,8 @@ export class NewPlayerPageComponent {
 
   readonly gameType = input.required<GameTypes>();
 
+  readonly game = this.gameService.game;
+
   readonly newPlayerForm: ToFormGroup<PlayerFormViewModel> =
     this.formBuilder.group({
       name: ['', Validators.required],
@@ -98,6 +108,14 @@ export class NewPlayerPageComponent {
   readonly colorControlSignal = toSignal(
     this.newPlayerForm.get('color')!.valueChanges
   );
+
+  readonly createPlayerButtonLabel = computed(() => {
+    if (this.gameType() === GameTypes.Local) {
+      return 'Create ' + (this.nameControlSignal() ?? 'Player');
+    }
+
+    return `Join ${this.gameService.game().name}`;
+  });
 
   onCreatePlayerButtonClick(): void {
     if (!this.newPlayerForm.valid) {

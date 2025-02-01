@@ -5,6 +5,8 @@ import { PlayerService } from '../data-access/player.service';
 import { PlayerTimerComponent } from '../shared/player-timer.component';
 import { ButtonModule } from 'primeng/button';
 import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
+import { Confirmation } from 'primeng/api';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'time-rush-active-game-page',
@@ -17,9 +19,10 @@ import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
   ],
   template: `
     <time-rush-header
-      [text]="game().name || 'Time Rush'"
+      [text]="game().name"
       alwaysSmall
-      routeToPreviousPage="/new-game"
+      backButtonIcon="pi-sign-out"
+      [navigationConfirmation]="navigationConfirmation"
     />
     @if (game(); as game) {
     <div class="mt-page-content">
@@ -55,15 +58,31 @@ export class ActiveGamePageComponent {
   // TODO: add skeleton for when data is loading
   private readonly gameService = inject(GameService);
   private readonly playerService = inject(PlayerService);
+  private readonly router = inject(Router);
 
   readonly game = this.gameService.game;
   readonly players = this.playerService.players;
+  readonly player = this.playerService.player;
   readonly activePlayerId = this.playerService.activePlayerId;
   readonly nextPlayer = this.playerService.nextPlayer;
 
   readonly timerStates: WritableSignal<boolean[]> = signal(
     new Array((this.players() ?? []).length).fill(false)
   );
+
+  readonly navigationConfirmation: Confirmation = {
+    message:
+      "Leave this game?  If you want to return, you'll need to join as a new player.",
+    header: 'Leave Game',
+    accept: () => {
+      this.playerService.leaveOnlineGame();
+      this.router.navigate(['/home']);
+    },
+    acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',
+    rejectButtonStyleClass: 'p-button-text w-4rem',
+    acceptIcon: 'none',
+    rejectIcon: 'none',
+  };
 
   changeActivePlayer() {
     this.playerService.changeActivePlayer();

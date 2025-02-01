@@ -1,4 +1,5 @@
 import {
+  DestroyRef,
   effect,
   inject,
   Injectable,
@@ -10,11 +11,19 @@ import {
   GameFormViewModel,
   SessionStorageKeys,
   TimeUnits,
+  WebSocketActions,
+  WebSocketMessage,
 } from '../shared/types';
 import { ApiService } from './api.service';
 import { SessionStorageService } from './session-storage.service';
-import { BASE_INCOMING_WS_TOPIC, LOCAL_GAME_ID } from '../shared/constants';
+import {
+  BASE_INCOMING_WS_TOPIC,
+  BASE_OUTGOING_WS_TOPIC,
+  LOCAL_GAME_ID,
+} from '../shared/constants';
 import { WebSocketService } from './web-socket.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
@@ -23,6 +32,8 @@ export class GameService {
   private readonly apiService = inject(ApiService);
   private readonly sessionStorageService = inject(SessionStorageService);
   private readonly webSocketService = inject(WebSocketService);
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly router = inject(Router);
 
   readonly game: WritableSignal<GameModel> = signal({
     id: LOCAL_GAME_ID,
@@ -30,7 +41,6 @@ export class GameService {
     turnLength: 30,
     turnLengthUnits: TimeUnits.Seconds,
     joinCode: '_',
-    hostPlayerId: '_',
   });
 
   constructor() {
@@ -40,7 +50,17 @@ export class GameService {
 
     if (savedGame) {
       this.game.set(savedGame);
+
+      if (savedGame.id !== LOCAL_GAME_ID) {
+        this.webSocketService.subscribe(
+          `${BASE_INCOMING_WS_TOPIC}/${this.game().id}`
+        );
+      }
     }
+
+    this.webSocketService.messages$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((message) => this.handleMessage(message));
   }
 
   readonly updateLocalStorageOnGameUpdatesEffect = effect(() => {
@@ -63,6 +83,18 @@ export class GameService {
     return _newGame;
   }
 
+  async leaveOnlineGame() {
+    this.game.set({
+      id: LOCAL_GAME_ID,
+      name: 'Time Rush',
+      turnLength: 30,
+      turnLengthUnits: TimeUnits.Seconds,
+      joinCode: '_',
+    });
+
+    this.webSocketService.unsubscribeAll();
+  }
+
   // TODO: disallow joining of "inactive" games
   async joinOnlineGame(joinCode: string): Promise<GameModel | undefined> {
     const game = await this.apiService.getGameByJoinCode(joinCode);
@@ -75,6 +107,13 @@ export class GameService {
     return game;
   }
 
+  async startOnlineGame() {
+    this.webSocketService.sendMessage(
+      `${BASE_OUTGOING_WS_TOPIC}/${this.game().id}`,
+      { action: WebSocketActions.StartGame }
+    );
+  }
+
   // Local Game CRUD
   createLocalGame(newGame: GameFormViewModel): void {
     this.game.set({
@@ -82,5 +121,12 @@ export class GameService {
       id: LOCAL_GAME_ID,
       joinCode: '_',
     });
+  }
+
+  // Misc
+  async handleMessage(message: WebSocketMessage) {
+    if (message.action === WebSocketActions.StartGame) {
+      this.router.navigate(['/active-game']);
+    }
   }
 }

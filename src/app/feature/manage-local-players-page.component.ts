@@ -20,19 +20,14 @@ import { PlayerListComponent } from '../shared/player-list.component';
 
     <!-- Players -->
     <div class="mt-page-content">
-      @if (players().length) {
       <time-rush-player-list
         class="block mt-3"
         [players]="players()"
         [player]="player()"
-        [gameType]="GameTypes.Online"
+        [gameType]="GameTypes.Local"
+        (playerOrderChange)="onPlayerOrderChange($event)"
       />
-      } @else {
-      <p class="font-italic mt-4">
-        No players found. Return to the home page and create a new game to get
-        started.
-      </p>
-      }
+
       <p-button
         class="w-full"
         styleClass="w-full mt-6"
@@ -51,8 +46,11 @@ export class ManageLocalPlayersPageComponent {
   readonly players = this.playerService.players;
   readonly player = this.playerService.player;
 
-  onPlayerDrop(ev: CdkDragDrop<string[]>): void {
-    this.playerService.reorderLocalPlayers(ev.previousIndex, ev.currentIndex);
+  onPlayerOrderChange(event: CdkDragDrop<string[]>): void {
+    this.playerService.reorderLocalPlayers(
+      event.previousIndex,
+      event.currentIndex
+    );
   }
 
   onStartGameButtonClick() {

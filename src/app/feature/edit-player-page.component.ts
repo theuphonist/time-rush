@@ -1,4 +1,4 @@
-import { Component, inject, input, OnInit, signal } from '@angular/core';
+import { Component, computed, inject, input, OnInit } from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
 import {
   FormBuilder,
@@ -12,7 +12,7 @@ import { Router } from '@angular/router';
 import { ColorPickerModule } from 'primeng/colorpicker';
 import { PlayerIconComponent } from '../shared/player-icon.component';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { PlayerFormViewModel, PlayerModel, ToFormGroup } from '../shared/types';
+import { GameTypes, PlayerFormViewModel, ToFormGroup } from '../shared/types';
 import { PlayerService } from '../data-access/player.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 
@@ -31,7 +31,9 @@ import { toSignal } from '@angular/core/rxjs-interop';
   template: `<time-rush-header
       text="Edit Player"
       alwaysSmall
-      routeToPreviousPage="/manage-players"
+      [routeToPreviousPage]="
+        gameType() === GameTypes.Local ? '/manage-players' : '/lobby'
+      "
     />
     <form [formGroup]="editPlayerForm" (ngSubmit)="onUpdatePlayerButtonClick()">
       <!-- Player name input -->
@@ -47,8 +49,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
             formControlName="name"
           />
         </label>
-        <small id="player-name-help"
-          ><span class="text-500">What's this player's name?</span></small
+        <span class="hidden" id="player-name-help"
+          >What's this player's name?</span
         >
       </div>
 
@@ -67,18 +69,20 @@ import { toSignal } from '@angular/core/rxjs-interop';
 
       <p-button
         styleClass="w-full mt-6"
-        [label]="'Update ' + (originalPlayer().name || 'Player')"
+        label="Save changes"
         type="submit"
         [disabled]="!editPlayerForm.valid"
       />
 
+      @if (gameType() === GameTypes.Local) {
       <p-button
         styleClass="w-full mt-6"
         severity="danger"
-        [label]="'Delete ' + (originalPlayer().name || 'Player')"
+        [label]="'Delete ' + (originalPlayer()?.name || 'Player')"
         type="button"
         (click)="onDeletePlayerButtonClick()"
       />
+      }
     </form> `,
 })
 export class EditPlayerPageComponent implements OnInit {
@@ -88,8 +92,12 @@ export class EditPlayerPageComponent implements OnInit {
   private readonly playerService = inject(PlayerService);
   private readonly confirmationService = inject(ConfirmationService);
 
-  readonly playerId = input('');
-  readonly originalPlayer = signal({} as PlayerModel);
+  readonly playerId = input.required<string>();
+  readonly gameType = input.required<GameTypes>();
+
+  readonly originalPlayer = computed(() =>
+    this.playerService.players().find((player) => player.id === this.playerId())
+  );
 
   readonly editPlayerForm: ToFormGroup<PlayerFormViewModel> =
     this.formBuilder.group({
@@ -98,14 +106,7 @@ export class EditPlayerPageComponent implements OnInit {
     });
 
   ngOnInit() {
-    const originalPlayer = this.playerService
-      .players()
-      .find((_player) => _player.id === this.playerId());
-
-    if (originalPlayer) {
-      this.originalPlayer.set(originalPlayer);
-      this.editPlayerForm.patchValue({ ...originalPlayer });
-    }
+    this.editPlayerForm.patchValue({ ...this.originalPlayer() });
   }
 
   readonly nameControlSignal = toSignal(
@@ -126,17 +127,29 @@ export class EditPlayerPageComponent implements OnInit {
       return;
     }
 
-    this.playerService.updateLocalPlayer(
+    if (this.gameType() === GameTypes.Local) {
+      this.playerService.updateLocalPlayer(
+        this.playerId(),
+        this.editPlayerForm.value as PlayerFormViewModel
+      );
+
+      this.router.navigate(['/manage-players']);
+      return;
+    }
+
+    this.playerService.updateOnlinePlayer(
       this.playerId(),
       this.editPlayerForm.value as PlayerFormViewModel
     );
 
-    this.router.navigate(['/manage-players']);
+    this.router.navigate(['/lobby']);
   }
 
   onDeletePlayerButtonClick() {
     this.confirmationService.confirm({
-      message: `Are you sure you want to delete ${this.originalPlayer().name}?`,
+      message: `Are you sure you want to delete ${
+        this.originalPlayer()?.name ?? 'this player'
+      }?`,
       header: 'Delete Player',
       accept: () => {
         this.playerService.deleteLocalPlayer(this.playerId());
@@ -148,4 +161,6 @@ export class EditPlayerPageComponent implements OnInit {
       rejectIcon: 'none',
     });
   }
+
+  readonly GameTypes = GameTypes;
 }

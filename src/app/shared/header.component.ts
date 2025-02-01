@@ -1,10 +1,18 @@
-import { booleanAttribute, Component, input } from '@angular/core';
+import {
+  booleanAttribute,
+  Component,
+  computed,
+  inject,
+  input,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { Confirmation, ConfirmationService } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
 
 @Component({
   selector: 'time-rush-header',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, ButtonModule],
   template: ` <div
     class="flex fixed top-0 left-0 w-full h-6rem align-items-end background-blur pb-2 z-5"
     [class.header-border]="alwaysSmall()"
@@ -14,9 +22,15 @@ import { RouterLink } from '@angular/router';
     } @else {
     <div class="w-full grid">
       <div class="col-2 text-center">
-        @if (routeToPreviousPage()){
+        @if (navigationConfirmation()) {
+        <p-button
+          [icon]="'pi ' + _backButtonIcon()"
+          [text]="true"
+          (click)="confirmNavigation()"
+        />
+        } @else if (routeToPreviousPage()){
         <a [routerLink]="routeToPreviousPage()">
-          <i class="pi pi-arrow-left text-primary"></i>
+          <i [class]="'text-primary pi ' + _backButtonIcon()"></i>
         </a>
         }
       </div>
@@ -42,7 +56,23 @@ import { RouterLink } from '@angular/router';
   }`,
 })
 export class HeaderComponent {
+  private readonly confirmationService = inject(ConfirmationService);
+
   readonly text = input.required<string>();
   readonly alwaysSmall = input(false, { transform: booleanAttribute });
   readonly routeToPreviousPage = input<string>();
+  readonly backButtonIcon = input<string>();
+  readonly navigationConfirmation = input<Confirmation>();
+
+  readonly _backButtonIcon = computed(() =>
+    this.backButtonIcon() ? this.backButtonIcon() : 'pi-arrow-left'
+  );
+
+  confirmNavigation() {
+    const navigationConfirmation = this.navigationConfirmation();
+
+    if (navigationConfirmation) {
+      this.confirmationService.confirm(navigationConfirmation);
+    }
+  }
 }

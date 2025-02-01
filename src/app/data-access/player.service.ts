@@ -4,6 +4,7 @@ import {
   effect,
   inject,
   Injectable,
+  Signal,
   signal,
   WritableSignal,
 } from '@angular/core';
@@ -23,7 +24,6 @@ import { SessionStorageService } from './session-storage.service';
 import { BASE_OUTGOING_WS_TOPIC, LOCAL_GAME_ID } from '../shared/constants';
 import { WebSocketService } from './web-socket.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { filter } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -35,15 +35,34 @@ export class PlayerService {
   private readonly webSocketService = inject(WebSocketService);
   private readonly destroyRef = inject(DestroyRef);
 
-  readonly localPlayers: WritableSignal<PlayerModel[]>;
-  readonly onlinePlayers: WritableSignal<PlayerModel[]>;
-  readonly players = computed(() =>
-    this.gameService.game().id === LOCAL_GAME_ID
-      ? this.localPlayers()
-      : this.onlinePlayers()
-  );
+  readonly game = this.gameService.game;
 
-  readonly player: WritableSignal<PlayerModel>;
+  private readonly localPlayers: WritableSignal<PlayerModel[]>;
+  private readonly onlinePlayers: WritableSignal<PlayerModel[]>;
+  readonly players = computed(() => {
+    const selectedPlayers =
+      this.game().id === LOCAL_GAME_ID
+        ? this.localPlayers()
+        : this.onlinePlayers();
+
+    return selectedPlayers.sort(
+      (player1, player2) => player1.position - player2.position
+    );
+  });
+
+  readonly playerId: WritableSignal<PlayerModel['id'] | null>;
+
+  readonly player: Signal<PlayerModel> = computed(
+    () =>
+      this.players().find((player) => player.id === this.playerId()) ?? {
+        id: '',
+        name: '',
+        color: '',
+        isHost: false,
+        gameId: '',
+        position: -1,
+      }
+  );
 
   readonly activePlayerId: WritableSignal<PlayerModel['id'] | undefined> =
     signal(undefined);
@@ -72,27 +91,20 @@ export class PlayerService {
         []) as PlayerModel[]
     );
 
-    this.onlinePlayers = signal([]);
-
-    this.player = signal(
-      (this.sessionStorageService.getItem(SessionStorageKeys.Player) ?? {
-        id: '',
-        name: '',
-        color: '',
-        gameId: '',
-        isHost: false,
-      }) as PlayerModel
+    this.playerId = signal(
+      this.sessionStorageService.getItem(SessionStorageKeys.PlayerId) as
+        | PlayerModel['id']
+        | null
     );
 
-    const savedGame = this.gameService.game();
+    this.onlinePlayers = signal([]);
+
+    const savedGame = this.game();
 
     this.getOnlinePlayers(savedGame.id);
 
     this.webSocketService.messages$
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        filter((message) => message.from !== this.player().id)
-      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((message) => this.handleMessage(message));
   }
 
@@ -103,10 +115,10 @@ export class PlayerService {
     );
   });
 
-  readonly updateSessionStorageOnThisPlayerUpdates = effect(() => {
+  readonly updateSessionStorageOnPlayerIdUpdates = effect(() => {
     this.sessionStorageService.setItem(
-      SessionStorageKeys.Player,
-      this.player()
+      SessionStorageKeys.PlayerId,
+      this.playerId()
     );
   });
 
@@ -146,16 +158,15 @@ export class PlayerService {
     const _newPlayer = await this.apiService.createPlayer(
       newPlayer,
       gameId,
+      this.onlinePlayers().length,
       isHost
     );
 
     if (_newPlayer) {
       this.onlinePlayers.update((players) => [...players, _newPlayer]);
-      this.player.set(_newPlayer);
+      this.playerId.set(_newPlayer.id);
       this.webSocketService.sendMessage(`${BASE_OUTGOING_WS_TOPIC}/${gameId}`, {
-        from: _newPlayer.id,
-        action: WebSocketActions.PlayerAdded,
-        data: _newPlayer,
+        action: WebSocketActions.UpdatePlayer,
       });
     }
 
@@ -172,6 +183,87 @@ export class PlayerService {
       .then((players) => this.onlinePlayers.set(players ?? []));
   }
 
+  async updateOnlinePlayer(
+    playerId: PlayerModel['id'],
+    playerUpdates: Partial<PlayerModel>
+  ) {
+    const updatedPlayer = await this.apiService.updatePlayer({
+      ...playerUpdates,
+      id: playerId,
+    });
+
+    if (updatedPlayer) {
+      this.onlinePlayers.update((players) =>
+        players.map((player) =>
+          player.id === updatedPlayer.id ? updatedPlayer : player
+        )
+      );
+
+      this.webSocketService.sendMessage(
+        `${BASE_OUTGOING_WS_TOPIC}/${this.game().id}`,
+        {
+          action: WebSocketActions.UpdatePlayer,
+        }
+      );
+    }
+
+    return updatedPlayer;
+  }
+
+  async deleteOnlinePlayer(
+    playerId: PlayerModel['id'],
+    gameId: GameModel['id']
+  ) {
+    const deletedPlayer = (await this.apiService.deletePlayer(
+      playerId
+    )) as PlayerModel | null;
+
+    if (deletedPlayer) {
+      this.onlinePlayers.update((players) =>
+        players.filter((player) => player.id !== playerId)
+      );
+      this.webSocketService.sendMessage(`${BASE_OUTGOING_WS_TOPIC}/${gameId}`, {
+        action: WebSocketActions.UpdatePlayer,
+      });
+
+      if (deletedPlayer.isHost) {
+        this.webSocketService.sendMessage(
+          `${BASE_OUTGOING_WS_TOPIC}/${gameId}`,
+          {
+            action: WebSocketActions.DeleteHost,
+          }
+        );
+      }
+    }
+  }
+
+  leaveOnlineGame() {
+    const player = this.player();
+
+    if (player) {
+      this.deleteOnlinePlayer(player.id, this.game().id);
+      this.playerId.set('_');
+    }
+
+    this.gameService.leaveOnlineGame();
+
+    this.webSocketService.unsubscribeAll();
+  }
+
+  reorderOnlinePlayers(previousIndex: number, currentIndex: number) {
+    const players = this.onlinePlayers();
+    moveItemInArray(players, previousIndex, currentIndex);
+
+    for (let i = 0; i < players.length; i++) {
+      this.updateOnlinePlayer(players[i].id, { position: i });
+    }
+
+    this.webSocketService.sendMessage(
+      `${BASE_OUTGOING_WS_TOPIC}/${this.game().id}`,
+      { action: WebSocketActions.UpdatePlayer }
+    );
+  }
+
   // Local Player CRUD
   createLocalPlayer(newPlayer: PlayerFormViewModel) {
     const _newPlayer = {
@@ -179,6 +271,7 @@ export class PlayerService {
       id: ulid(),
       gameId: LOCAL_GAME_ID,
       isHost: false,
+      position: this.localPlayers().length - 1,
     };
     this.localPlayers.update((players) => [...players, _newPlayer]);
   }
@@ -206,12 +299,23 @@ export class PlayerService {
     this.localPlayers.set(players);
   }
 
-  handleMessage(message: WebSocketMessage) {
-    if (message.action === WebSocketActions.PlayerAdded) {
-      this.onlinePlayers.update((onlinePlayers) => [
-        ...onlinePlayers,
-        message.data as PlayerModel,
-      ]);
+  // Misc
+  async handleMessage(message: WebSocketMessage) {
+    if (message.action === WebSocketActions.UpdatePlayer) {
+      const players = await this.apiService.getPlayersByGameId(this.game().id);
+
+      this.onlinePlayers.set(players ?? []);
+    } else if (message.action === WebSocketActions.DeleteHost) {
+      if (this.players().length) {
+        // just in case current host hasn't been deleted yet
+        const newHost = this.players().find((player) => !player.isHost);
+
+        if (newHost) {
+          await this.updateOnlinePlayer(newHost.id, {
+            isHost: true,
+          });
+        }
+      }
     }
   }
 }
