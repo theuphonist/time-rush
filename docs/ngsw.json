@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1738392188399,
+  "timestamp": 1738478583891,
   "index": "/index.html",
   "assetGroups": [
     {
@@ -14,7 +14,7 @@
         "/chunk-OC5IJIEF.js",
         "/chunk-OSTR6BVJ.js",
         "/index.html",
-        "/main-NJBX5OCT.js",
+        "/main-2E25CC6Y.js",
         "/manifest.webmanifest",
         "/polyfills-FFHMD2TL.js",
         "/styles-LDYBO36N.css"
@@ -67,8 +67,8 @@
     "/assets/img/custom-hue.png": "f81ae627637a684614aa726e206c73ce099a01fd",
     "/chunk-OC5IJIEF.js": "bd1cd82d1d0dc3acd2e958344d57f9e4aba5b6f7",
     "/chunk-OSTR6BVJ.js": "0c307402b67524ed938f9c11de2704161dd8ce2e",
-    "/index.html": "57ecb3c51a1cc161fe7e32c11610619f597518f8",
-    "/main-NJBX5OCT.js": "c01f594ccbd44f09d4f951b5c37ec9cdc76df85a",
+    "/index.html": "da64ce949f5a6d72d96c1b6b6f6344883ab0713b",
+    "/main-2E25CC6Y.js": "a91f4715a0c1fbd48b6844be540720f9fe97a57c",
     "/manifest.webmanifest": "befbaf5f80771c76277bcd1f6a195c0732abc52e",
     "/media/Inter-italic.var-YRHKCDAA.woff2": "9995712e0ca3cda14c7d6014abe0f979cf57ec53",
     "/media/Inter-roman.var-5VGNBR6A.woff2": "d56a83c1e298702010cde038317713aaef23fe6c",
