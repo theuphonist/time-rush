@@ -7,6 +7,7 @@ import { ButtonModule } from 'primeng/button';
 import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
 import { Confirmation } from 'primeng/api';
 import { Router } from '@angular/router';
+import { LOCAL_GAME_ID } from '../shared/constants';
 
 @Component({
   selector: 'time-rush-active-game-page',
@@ -85,6 +86,11 @@ export class ActiveGamePageComponent {
   };
 
   changeActivePlayer() {
-    this.playerService.changeActivePlayer();
+    if (this.game().id === LOCAL_GAME_ID) {
+      this.playerService.changeActiveLocalPlayer();
+      return;
+    }
+
+    this.playerService.changeActiveOnlinePlayer();
   }
 }
