@@ -24,6 +24,7 @@ import { ButtonModule } from 'primeng/button';
       <div class="col-2 text-center">
         @if (navigationConfirmation()) {
         <p-button
+          styleClass="p-0"
           [icon]="'pi ' + _backButtonIcon()"
           [text]="true"
           (click)="confirmNavigation()"
