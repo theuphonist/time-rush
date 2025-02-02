@@ -122,34 +122,7 @@ export class PlayerService {
     );
   });
 
-  changeActivePlayer(nextPlayerId?: PlayerModel['id']) {
-    const players = this.players();
-
-    if (!players) {
-      return;
-    }
-
-    if (this.activePlayerId() === undefined) {
-      this.activePlayerId.set(players[0].id);
-      return;
-    }
-
-    if (nextPlayerId !== undefined) {
-      this.activePlayerId.set(nextPlayerId);
-      return;
-    }
-
-    const currentPlayerIndex = players.findIndex(
-      (player) => player.id === this.activePlayerId()
-    );
-
-    const nextPlayerIndex =
-      currentPlayerIndex + 1 >= players.length ? 0 : currentPlayerIndex + 1;
-
-    this.activePlayerId.set(players[nextPlayerIndex].id);
-  }
-
-  // Online Player CRUD
+  // Online Player Methods
   async createOnlinePlayer(
     newPlayer: PlayerFormViewModel,
     gameId: GameModel['id'],
@@ -264,7 +237,23 @@ export class PlayerService {
     );
   }
 
-  // Local Player CRUD
+  changeActiveOnlinePlayer(nextPlayerId?: PlayerModel['id']) {
+    const activePlayerId = this.changeActivePlayer(nextPlayerId);
+
+    if (activePlayerId) {
+      this.webSocketService.sendMessage(
+        `${BASE_OUTGOING_WS_TOPIC}/${this.game().id}`,
+        {
+          action: WebSocketActions.ChangeActivePlayer,
+          data: {
+            activePlayerId,
+          },
+        }
+      );
+    }
+  }
+
+  // Local Player Methods
   createLocalPlayer(newPlayer: PlayerFormViewModel) {
     const _newPlayer = {
       ...newPlayer,
@@ -299,13 +288,21 @@ export class PlayerService {
     this.localPlayers.set(players);
   }
 
+  changeActiveLocalPlayer(nextPlayerId?: PlayerModel['id']) {
+    this.changeActivePlayer(nextPlayerId);
+  }
+
   // Misc
   async handleMessage(message: WebSocketMessage) {
+    // Update Player
     if (message.action === WebSocketActions.UpdatePlayer) {
       const players = await this.apiService.getPlayersByGameId(this.game().id);
 
       this.onlinePlayers.set(players ?? []);
-    } else if (message.action === WebSocketActions.DeleteHost) {
+    }
+
+    // Delete Host
+    else if (message.action === WebSocketActions.DeleteHost) {
       if (this.players().length) {
         // just in case current host hasn't been deleted yet
         const newHost = this.players().find((player) => !player.isHost);
@@ -317,5 +314,41 @@ export class PlayerService {
         }
       }
     }
+
+    // Change Active Player
+    else if (message.action === WebSocketActions.ChangeActivePlayer) {
+      const messageData = message.data as { activePlayerId: PlayerModel['id'] };
+      const activePlayerId = messageData.activePlayerId;
+      this.changeActivePlayer(activePlayerId);
+    }
+  }
+
+  private changeActivePlayer(nextPlayerId?: PlayerModel['id']) {
+    const players = this.players();
+
+    if (!players) {
+      return;
+    }
+
+    if (this.activePlayerId() === undefined) {
+      this.activePlayerId.set(players[0].id);
+      return players[0].id;
+    }
+
+    if (nextPlayerId !== undefined) {
+      this.activePlayerId.set(nextPlayerId);
+      return nextPlayerId;
+    }
+
+    const currentPlayerIndex = players.findIndex(
+      (player) => player.id === this.activePlayerId()
+    );
+
+    const nextPlayerIndex =
+      currentPlayerIndex + 1 >= players.length ? 0 : currentPlayerIndex + 1;
+
+    this.activePlayerId.set(players[nextPlayerIndex].id);
+
+    return players[nextPlayerIndex].id;
   }
 }

@@ -6,14 +6,22 @@ import { Component, input } from '@angular/core';
   imports: [],
   template: `
     <div
-      class="border-circle border-400 border-3 h-3rem w-3rem"
-      [class.opacity-20]="disabled()"
+      class="relative border-circle border-400 border-3 h-3rem w-3rem"
       [style]="{ backgroundColor: playerColor() }"
-    ></div>
+    >
+      @if(isHost()) {
+      <p
+        class="text-xl m-0 absolute text-center left-0 right-0 w-auto"
+        [style.top]="'-1rem'"
+      >
+        👑
+      </p>
+      }
+    </div>
   `,
   styles: ``,
 })
 export class PlayerIconComponent {
   readonly playerColor = input.required<string>();
-  readonly disabled = input<boolean>();
+  readonly isHost = input<boolean>(false);
 }

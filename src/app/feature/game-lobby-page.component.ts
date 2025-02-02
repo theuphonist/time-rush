@@ -41,7 +41,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
       [gameType]="GameTypes.Online"
       (playerOrderChange)="onPlayerOrderChange($event)"
     />
-
+    @if (player().isHost) {
     <p-button
       class="w-full"
       styleClass="w-full mt-6"
@@ -49,7 +49,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
       [disabled]="players().length < 2"
       (click)="onStartGameButtonClick()"
     />
-    } @else {
+    } } @else {
     <p class="font-italic mt-4">
       No players found. Return to the home page and create a new game to get
       started.

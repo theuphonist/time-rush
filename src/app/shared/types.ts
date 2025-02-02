@@ -51,11 +51,16 @@ export interface PlayerFormViewModel {
 // WebSockets
 export interface WebSocketMessage {
   action: WebSocketActions;
+  data?: unknown;
 }
 
 export enum WebSocketActions {
+  // Player Actions
   UpdatePlayer = 'playerChange',
   DeleteHost = 'hostDeleted',
+  ChangeActivePlayer = 'changeActivePlayer',
+
+  // Game Actions
   StartGame = 'gameStarted',
 }
 

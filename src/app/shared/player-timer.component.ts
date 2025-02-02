@@ -28,7 +28,7 @@ import { PlayerModel, TimeUnits } from './types';
       >
         <div
           class="absolute h-full"
-          [style.transition]="'width linear ' + refreshPeriod() / 1000 + 's'"
+          [style.transition]="'width linear ' + REFRESH_PERIOD / 1000 + 's'"
           [style.width.%]="isActive() ? percentRemaining() : 100"
           [style.background-color]="player().color"
         ></div>
@@ -59,11 +59,11 @@ export class PlayerTimerComponent {
   readonly isActive = input(false, { transform: booleanAttribute });
   readonly turnLength = input.required<number>();
   readonly timeUnits = input.required<TimeUnits>();
-  readonly refreshPeriod = input<number>(1000);
   readonly player = input.required<PlayerModel>();
 
   readonly timerWidthsInPercent = { active: 100, inactive: 50 };
   readonly timerHeightsInRem = { active: 4, inactive: 2.5 };
+  readonly REFRESH_PERIOD = 1000;
 
   readonly turnLengthInMs = computed(
     () =>
@@ -78,19 +78,19 @@ export class PlayerTimerComponent {
     switchMap((isActive) =>
       // reset timer when this player deactivates
       // interval() first emits "0" after initial delay, use "startWith" to get initial value immediately
-      isActive ? interval(this.refreshPeriod()).pipe(startWith(-1)) : of(-1)
+      isActive ? interval(this.REFRESH_PERIOD).pipe(startWith(-1)) : of(-1)
     ),
     map(
       (timerTicks) =>
-        this.turnLengthInMs() - (timerTicks + 1) * this.refreshPeriod()
+        this.turnLengthInMs() - (timerTicks + 1) * this.REFRESH_PERIOD
     )
   );
 
   readonly timeRemaining = toSignal(this.timeRemaining$);
   readonly percentRemaining = computed(
     () =>
-      (((this.timeRemaining() ?? this.turnLengthInMs() + this.refreshPeriod()) -
-        this.refreshPeriod()) /
+      (((this.timeRemaining() ?? this.turnLengthInMs() + this.REFRESH_PERIOD) -
+        this.REFRESH_PERIOD) /
         this.turnLengthInMs()) *
       100
   );
