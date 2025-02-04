@@ -15,13 +15,18 @@ import {
   SessionStorageKeys,
   WebSocketActions,
   WebSocketMessage,
+  WebSocketTopics,
 } from '../shared/types';
 import { ApiService } from './api.service';
 import { ulid } from 'ulid';
 import { moveItemInArray } from '@angular/cdk/drag-drop';
 import { GameService } from './game.service';
 import { SessionStorageService } from './session-storage.service';
-import { BASE_OUTGOING_WS_TOPIC, LOCAL_GAME_ID } from '../shared/constants';
+import {
+  BASE_OUTGOING_WS_TOPIC,
+  LOCAL_GAME_ID,
+  LOCAL_PLAYER_ID,
+} from '../shared/constants';
 import { WebSocketService } from './web-socket.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
@@ -43,11 +48,11 @@ export class PlayerService {
     const selectedPlayers =
       this.game().id === LOCAL_GAME_ID
         ? this.localPlayers()
-        : this.onlinePlayers();
+        : this.onlinePlayers()
+            .filter((player) => player.isConnected)
+            .sort((player1, player2) => player1.position - player2.position);
 
-    return selectedPlayers.sort(
-      (player1, player2) => player1.position - player2.position
-    );
+    return selectedPlayers;
   });
 
   readonly playerId: WritableSignal<PlayerModel['id'] | null>;
@@ -108,7 +113,7 @@ export class PlayerService {
       .subscribe((message) => this.handleMessage(message));
   }
 
-  readonly updateSessionStorageOnLocalPlayerUpdatesEffect = effect(() => {
+  readonly updateSessionStorageOnLocalPlayerUpdates = effect(() => {
     this.sessionStorageService.setItem(
       SessionStorageKeys.Players,
       this.localPlayers()
@@ -119,6 +124,23 @@ export class PlayerService {
     this.sessionStorageService.setItem(
       SessionStorageKeys.PlayerId,
       this.playerId()
+    );
+  });
+
+  readonly notifyServerOnPlayerIdUpdates = effect(() => {
+    const playerId = this.playerId();
+    if (!playerId || playerId === LOCAL_PLAYER_ID) {
+      this.webSocketService.sendMessage(
+        `${BASE_OUTGOING_WS_TOPIC}/${WebSocketTopics.DeleteSession}`,
+        {}
+      );
+      return;
+    }
+    this.webSocketService.sendMessage(
+      `${BASE_OUTGOING_WS_TOPIC}/${WebSocketTopics.MapSession}`,
+      {
+        data: { playerId: this.playerId() },
+      }
     );
   });
 
@@ -138,9 +160,6 @@ export class PlayerService {
     if (_newPlayer) {
       this.onlinePlayers.update((players) => [...players, _newPlayer]);
       this.playerId.set(_newPlayer.id);
-      this.webSocketService.sendMessage(`${BASE_OUTGOING_WS_TOPIC}/${gameId}`, {
-        action: WebSocketActions.UpdatePlayer,
-      });
     }
 
     return _newPlayer;
@@ -171,13 +190,6 @@ export class PlayerService {
           player.id === updatedPlayer.id ? updatedPlayer : player
         )
       );
-
-      this.webSocketService.sendMessage(
-        `${BASE_OUTGOING_WS_TOPIC}/${this.game().id}`,
-        {
-          action: WebSocketActions.UpdatePlayer,
-        }
-      );
     }
 
     return updatedPlayer;
@@ -195,18 +207,6 @@ export class PlayerService {
       this.onlinePlayers.update((players) =>
         players.filter((player) => player.id !== playerId)
       );
-      this.webSocketService.sendMessage(`${BASE_OUTGOING_WS_TOPIC}/${gameId}`, {
-        action: WebSocketActions.UpdatePlayer,
-      });
-
-      if (deletedPlayer.isHost) {
-        this.webSocketService.sendMessage(
-          `${BASE_OUTGOING_WS_TOPIC}/${gameId}`,
-          {
-            action: WebSocketActions.DeleteHost,
-          }
-        );
-      }
     }
   }
 
@@ -215,7 +215,7 @@ export class PlayerService {
 
     if (player) {
       this.deleteOnlinePlayer(player.id, this.game().id);
-      this.playerId.set('_');
+      this.playerId.set(LOCAL_PLAYER_ID);
     }
 
     this.gameService.leaveOnlineGame();
@@ -230,11 +230,6 @@ export class PlayerService {
     for (let i = 0; i < players.length; i++) {
       this.updateOnlinePlayer(players[i].id, { position: i });
     }
-
-    this.webSocketService.sendMessage(
-      `${BASE_OUTGOING_WS_TOPIC}/${this.game().id}`,
-      { action: WebSocketActions.UpdatePlayer }
-    );
   }
 
   changeActiveOnlinePlayer(nextPlayerId?: PlayerModel['id']) {
@@ -242,7 +237,7 @@ export class PlayerService {
 
     if (activePlayerId) {
       this.webSocketService.sendMessage(
-        `${BASE_OUTGOING_WS_TOPIC}/${this.game().id}`,
+        `${BASE_OUTGOING_WS_TOPIC}/${WebSocketTopics.Game}/${this.game().id}`,
         {
           action: WebSocketActions.ChangeActivePlayer,
           data: {
@@ -299,20 +294,6 @@ export class PlayerService {
       const players = await this.apiService.getPlayersByGameId(this.game().id);
 
       this.onlinePlayers.set(players ?? []);
-    }
-
-    // Delete Host
-    else if (message.action === WebSocketActions.DeleteHost) {
-      if (this.players().length) {
-        // just in case current host hasn't been deleted yet
-        const newHost = this.players().find((player) => !player.isHost);
-
-        if (newHost) {
-          await this.updateOnlinePlayer(newHost.id, {
-            isHost: true,
-          });
-        }
-      }
     }
 
     // Change Active Player

@@ -13,6 +13,7 @@ import {
   TimeUnits,
   WebSocketActions,
   WebSocketMessage,
+  WebSocketTopics,
 } from '../shared/types';
 import { ApiService } from './api.service';
 import { SessionStorageService } from './session-storage.service';
@@ -53,7 +54,7 @@ export class GameService {
 
       if (savedGame.id !== LOCAL_GAME_ID) {
         this.webSocketService.subscribe(
-          `${BASE_INCOMING_WS_TOPIC}/${this.game().id}`
+          `${BASE_INCOMING_WS_TOPIC}/${WebSocketTopics.Game}/${this.game().id}`
         );
       }
     }
@@ -76,7 +77,7 @@ export class GameService {
     if (_newGame) {
       this.game.set(_newGame);
       this.webSocketService.subscribe(
-        `${BASE_INCOMING_WS_TOPIC}/${_newGame.id}`
+        `${BASE_INCOMING_WS_TOPIC}/${WebSocketTopics.Game}/${_newGame.id}`
       );
     }
 
@@ -101,7 +102,9 @@ export class GameService {
 
     if (game) {
       this.game.set(game);
-      this.webSocketService.subscribe(`${BASE_INCOMING_WS_TOPIC}/${game.id}`);
+      this.webSocketService.subscribe(
+        `${BASE_INCOMING_WS_TOPIC}/${WebSocketTopics.Game}/${game.id}`
+      );
     }
 
     return game;
@@ -109,7 +112,7 @@ export class GameService {
 
   async startOnlineGame() {
     this.webSocketService.sendMessage(
-      `${BASE_OUTGOING_WS_TOPIC}/${this.game().id}`,
+      `${BASE_OUTGOING_WS_TOPIC}/${WebSocketTopics.Game}/${this.game().id}`,
       { action: WebSocketActions.StartGame }
     );
   }

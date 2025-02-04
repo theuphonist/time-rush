@@ -6,9 +6,10 @@ export const COMMON_HEADERS = {
 
 // WebSockets
 export const WS_URL = 'http://192.168.1.110:8080/messaging';
-export const BASE_INCOMING_WS_TOPIC = '/game';
+export const BASE_INCOMING_WS_TOPIC = '/topic';
 export const BASE_OUTGOING_WS_TOPIC = '/timerush';
 export const MAX_SUBSCRIBE_RETRIES = 5;
+export const MAX_SEND_RETRIES = 5;
 
 // Misc
 export const DEFAULT_PLAYER_COLORS: `#${string}`[] = [
@@ -26,4 +27,5 @@ export const DEFAULT_PLAYER_COLORS: `#${string}`[] = [
   '#181818',
 ];
 export const LOCAL_GAME_ID = '_';
+export const LOCAL_PLAYER_ID = '_';
 export const JOIN_CODE_REGEX = /^[a-zA-Z0-9]{4}$/;

@@ -42,6 +42,7 @@ export interface PlayerModel {
   gameId: string;
   isHost: boolean;
   position: number;
+  isConnected?: boolean;
   createdAt?: Date;
 }
 
@@ -52,18 +53,28 @@ export interface PlayerFormViewModel {
 
 // WebSockets
 export interface WebSocketMessage {
-  action: WebSocketActions;
-  data?: unknown;
+  action?: WebSocketActions;
+  data?: WebSocketMessageData;
+}
+
+export interface WebSocketMessageData {
+  playerId?: PlayerModel['id'] | null;
+  activePlayerId?: PlayerModel['id'];
 }
 
 export enum WebSocketActions {
   // Player Actions
-  UpdatePlayer = 'playerChange',
-  DeleteHost = 'hostDeleted',
+  UpdatePlayer = 'updatePlayer',
   ChangeActivePlayer = 'changeActivePlayer',
 
   // Game Actions
   StartGame = 'gameStarted',
+}
+
+export enum WebSocketTopics {
+  Game = 'game',
+  MapSession = 'map-session',
+  DeleteSession = 'delete-session',
 }
 
 // API

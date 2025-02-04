@@ -1,30 +1,46 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { inject, Injectable, OnDestroy } from '@angular/core';
 import { Client, StompSubscription } from '@stomp/stompjs';
-import { MAX_SUBSCRIBE_RETRIES, WS_URL } from '../shared/constants';
+import {
+  BASE_INCOMING_WS_TOPIC,
+  BASE_OUTGOING_WS_TOPIC,
+  LOCAL_PLAYER_ID,
+  MAX_SEND_RETRIES,
+  MAX_SUBSCRIBE_RETRIES,
+  WS_URL,
+} from '../shared/constants';
 import { Subject } from 'rxjs';
-import { WebSocketMessage } from '../shared/types';
+import {
+  GameModel,
+  PlayerModel,
+  SessionStorageKeys,
+  WebSocketMessage,
+  WebSocketTopics,
+} from '../shared/types';
+import { SessionStorageService } from './session-storage.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WebSocketService implements OnDestroy {
+  private readonly sessionStorageService = inject(SessionStorageService);
   private readonly stompClient: Client;
 
-  readonly subscriptions: StompSubscription[] = [];
+  private subscriptions: StompSubscription[] = [];
 
   readonly messages$ = new Subject<WebSocketMessage>();
 
   constructor() {
     this.stompClient = new Client({
       brokerURL: WS_URL,
+      onConnect: this.onConnect,
     });
 
     this.connect();
   }
 
   ngOnDestroy() {
-    this.disconnect();
     this.unsubscribeAll();
+    this.disconnect();
   }
 
   private connect(): void {
@@ -54,12 +70,52 @@ export class WebSocketService implements OnDestroy {
     for (const subscription of this.subscriptions) {
       subscription.unsubscribe();
     }
+
+    this.subscriptions = [];
   }
 
-  sendMessage(destination: string, message: WebSocketMessage) {
+  sendMessage(
+    destination: string,
+    message: WebSocketMessage,
+    retryNumber?: number
+  ) {
+    if (!this.stompClient.connected && (retryNumber ?? 0) <= MAX_SEND_RETRIES) {
+      setTimeout(
+        () => this.sendMessage(destination, message, (retryNumber ?? 0) + 1),
+        1000
+      );
+      return;
+    }
     this.stompClient.publish({
       destination,
       body: JSON.stringify(message),
     });
+  }
+
+  private onConnect() {
+    const playerId = this.sessionStorageService.getItem(
+      SessionStorageKeys.PlayerId
+    ) as PlayerModel['id'] | undefined;
+
+    if (playerId && playerId !== LOCAL_PLAYER_ID) {
+      this.sendMessage(
+        `${BASE_OUTGOING_WS_TOPIC}/${WebSocketTopics.MapSession}`,
+        {
+          data: {
+            playerId,
+          },
+        }
+      );
+    }
+
+    const game = this.sessionStorageService.getItem(SessionStorageKeys.Game) as
+      | GameModel
+      | undefined;
+
+    if (game?.id) {
+      this.subscribe(
+        `${BASE_INCOMING_WS_TOPIC}/${WebSocketTopics.Game}/${game.id}`
+      );
+    }
   }
 }
