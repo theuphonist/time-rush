@@ -24,7 +24,7 @@ import { PlayerListComponent } from '../shared/player-list.component';
         class="block mt-3"
         [players]="players()"
         [player]="player()"
-        [gameType]="GameTypes.Local"
+        [isLocalGame]="true"
         (playerOrderChange)="onPlayerOrderChange($event)"
       />
 

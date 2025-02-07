@@ -12,9 +12,10 @@ import { Router } from '@angular/router';
 import { ColorPickerModule } from 'primeng/colorpicker';
 import { PlayerIconComponent } from '../shared/player-icon.component';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { GameTypes, PlayerFormViewModel, ToFormGroup } from '../shared/types';
+import { PlayerFormViewModel, ToFormGroup } from '../shared/types';
 import { PlayerService } from '../data-access/player.service';
 import { toSignal } from '@angular/core/rxjs-interop';
+import { GameService } from '../data-access/game.service';
 
 @Component({
   selector: 'time-rush-edit-player-page',
@@ -31,9 +32,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
   template: `<time-rush-header
       text="Edit Player"
       alwaysSmall
-      [routeToPreviousPage]="
-        gameType() === GameTypes.Local ? '/manage-players' : '/lobby'
-      "
+      [routeToPreviousPage]="isLocalGame() ? '/manage-players' : '/lobby'"
     />
     <form [formGroup]="editPlayerForm" (ngSubmit)="onUpdatePlayerButtonClick()">
       <!-- Player name input -->
@@ -74,7 +73,7 @@ import { toSignal } from '@angular/core/rxjs-interop';
         [disabled]="!editPlayerForm.valid"
       />
 
-      @if (gameType() === GameTypes.Local) {
+      @if (isLocalGame()) {
       <p-button
         styleClass="w-full mt-6"
         severity="danger"
@@ -90,10 +89,12 @@ export class EditPlayerPageComponent implements OnInit {
   private readonly messageService = inject(MessageService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly playerService = inject(PlayerService);
+  private readonly gameService = inject(GameService);
   private readonly confirmationService = inject(ConfirmationService);
 
   readonly playerId = input.required<string>();
-  readonly gameType = input.required<GameTypes>();
+
+  readonly isLocalGame = this.gameService.isLocalGame;
 
   readonly originalPlayer = computed(() =>
     this.playerService.players().find((player) => player.id === this.playerId())
@@ -127,7 +128,7 @@ export class EditPlayerPageComponent implements OnInit {
       return;
     }
 
-    if (this.gameType() === GameTypes.Local) {
+    if (this.isLocalGame()) {
       this.playerService.updateLocalPlayer(
         this.playerId(),
         this.editPlayerForm.value as PlayerFormViewModel
@@ -161,6 +162,4 @@ export class EditPlayerPageComponent implements OnInit {
       rejectIcon: 'none',
     });
   }
-
-  readonly GameTypes = GameTypes;
 }

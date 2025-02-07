@@ -8,7 +8,6 @@ import { MessageService } from 'primeng/api';
 import { JOIN_CODE_REGEX } from '../shared/constants';
 import { GameService } from '../data-access/game.service';
 import { PlayerService } from '../data-access/player.service';
-import { GameTypes } from '../shared/types';
 
 @Component({
   selector: 'time-rush-home-page',
@@ -90,7 +89,7 @@ export class HomePageComponent {
 
     this.playerService.getOnlinePlayers(game.id);
 
-    this.router.navigate([`/new-player/${GameTypes.Online}`]);
+    this.router.navigate(['/new-player']);
   }
 
   onCreateGameButtonClick() {

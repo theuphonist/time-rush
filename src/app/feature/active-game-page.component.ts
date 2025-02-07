@@ -1,4 +1,10 @@
-import { Component, inject, signal, WritableSignal } from '@angular/core';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  WritableSignal,
+} from '@angular/core';
 import { HeaderComponent } from '../shared/header.component';
 import { GameService } from '../data-access/game.service';
 import { PlayerService } from '../data-access/player.service';
@@ -38,6 +44,8 @@ import { LOCAL_GAME_ID } from '../shared/constants';
       </div>
       } }
     </div>
+
+    @if (showEndTurnButton()) {
     <p-button
       styleClass="w-full h-8rem mt-6"
       [label]="
@@ -46,8 +54,7 @@ import { LOCAL_GAME_ID } from '../shared/constants';
         ' turn'
       "
       (click)="changeActivePlayer()"
-    />
-    } @else {
+    />} } @else {
     <p class="mt-page-content font-italic">
       Game not available. Return to home page to create a new game.
     </p>
@@ -66,6 +73,13 @@ export class ActiveGamePageComponent {
   readonly player = this.playerService.player;
   readonly activePlayerId = this.playerService.activePlayerId;
   readonly nextPlayer = this.playerService.nextPlayer;
+
+  readonly showEndTurnButton = computed(
+    () =>
+      this.game().id === LOCAL_GAME_ID ||
+      (!this.activePlayerId() && this.player().isHost) ||
+      this.player().id === this.activePlayerId()
+  );
 
   readonly timerStates: WritableSignal<boolean[]> = signal(
     new Array((this.players() ?? []).length).fill(false)

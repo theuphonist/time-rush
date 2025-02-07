@@ -1,4 +1,5 @@
 import {
+  computed,
   DestroyRef,
   effect,
   inject,
@@ -43,6 +44,8 @@ export class GameService {
     turnLengthUnits: TimeUnits.Seconds,
     joinCode: '_',
   });
+
+  readonly isLocalGame = computed(() => this.game().id === LOCAL_GAME_ID);
 
   constructor() {
     const savedGame = this.sessionStorageService.getItem(

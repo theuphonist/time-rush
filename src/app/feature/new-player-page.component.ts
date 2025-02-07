@@ -1,4 +1,4 @@
-import { Component, computed, inject, input } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { InputTextModule } from 'primeng/inputtext';
 import {
   FormBuilder,
@@ -12,7 +12,7 @@ import { Router } from '@angular/router';
 import { ColorPickerModule } from 'primeng/colorpicker';
 import { PlayerIconComponent } from '../shared/player-icon.component';
 import { MessageService } from 'primeng/api';
-import { GameTypes, PlayerFormViewModel, ToFormGroup } from '../shared/types';
+import { PlayerFormViewModel, ToFormGroup } from '../shared/types';
 import { PlayerService } from '../data-access/player.service';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { GameService } from '../data-access/game.service';
@@ -30,13 +30,11 @@ import { GameService } from '../data-access/game.service';
     PlayerIconComponent,
   ],
   template: `<time-rush-header
-      [text]="gameType() === GameTypes.Local ? 'New Player' : 'Join Game'"
+      [text]="isLocalGame() ? 'New Player' : 'Join Game'"
       alwaysSmall
-      [routeToPreviousPage]="
-        gameType() === GameTypes.Local ? '/manage-players' : '/home'
-      "
+      [routeToPreviousPage]="isLocalGame() ? '/manage-players' : '/home'"
     />
-    @if (gameType() === GameTypes.Online) {
+    @if (!isLocalGame()) {
     <p class="text-lg mt-page-content">
       You're joining
       <span class="font-bold">{{ game().name }} ({{ game().joinCode }})</span>
@@ -44,9 +42,7 @@ import { GameService } from '../data-access/game.service';
     }
     <form [formGroup]="newPlayerForm" (ngSubmit)="onCreatePlayerButtonClick()">
       <!-- Player name input -->
-      <div
-        [class]="gameType() === GameTypes.Local ? 'mt-page-content' : 'mt-5'"
-      >
+      <div [class]="isLocalGame() ? 'mt-page-content' : 'mt-5'">
         <label>
           <span class="text-600 text-lg font-semibold">Player Name</span>
           <input
@@ -91,9 +87,8 @@ export class NewPlayerPageComponent {
   private readonly playerService = inject(PlayerService);
   private readonly gameService = inject(GameService);
 
-  readonly gameType = input.required<GameTypes>();
-
   readonly game = this.gameService.game;
+  readonly isLocalGame = this.gameService.isLocalGame;
 
   readonly newPlayerForm: ToFormGroup<PlayerFormViewModel> =
     this.formBuilder.group({
@@ -110,7 +105,7 @@ export class NewPlayerPageComponent {
   );
 
   readonly createPlayerButtonLabel = computed(() => {
-    if (this.gameType() === GameTypes.Local) {
+    if (this.isLocalGame()) {
       return 'Create ' + (this.nameControlSignal() ?? 'Player');
     }
 
@@ -127,7 +122,7 @@ export class NewPlayerPageComponent {
       return;
     }
 
-    if (this.gameType() === GameTypes.Local) {
+    if (this.isLocalGame()) {
       this.playerService.createLocalPlayer(
         this.newPlayerForm.value as PlayerFormViewModel
       );
@@ -143,6 +138,4 @@ export class NewPlayerPageComponent {
 
     this.router.navigate(['/lobby']);
   }
-
-  readonly GameTypes = GameTypes;
 }

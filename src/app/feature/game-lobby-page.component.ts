@@ -3,7 +3,6 @@ import { HeaderComponent } from '../shared/header.component';
 import { GameService } from '../data-access/game.service';
 import { PlayerListComponent } from '../shared/player-list.component';
 import { PlayerService } from '../data-access/player.service';
-import { GameTypes } from '../shared/types';
 import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
 import { Confirmation } from 'primeng/api';
@@ -38,7 +37,7 @@ import { CdkDragDrop } from '@angular/cdk/drag-drop';
       class="block mt-3"
       [players]="players()"
       [player]="player()"
-      [gameType]="GameTypes.Online"
+      [isLocalGame]="false"
       (playerOrderChange)="onPlayerOrderChange($event)"
     />
     @if (player().isHost) {
@@ -91,6 +90,4 @@ export class GameLobbyPageComponent {
       event.currentIndex
     );
   }
-
-  readonly GameTypes = GameTypes;
 }

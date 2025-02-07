@@ -43,14 +43,17 @@ export class PlayerService {
   readonly game = this.gameService.game;
 
   private readonly localPlayers: WritableSignal<PlayerModel[]>;
-  private readonly onlinePlayers: WritableSignal<PlayerModel[]>;
+  private readonly allOnlinePlayers: WritableSignal<PlayerModel[]>;
+  private readonly connectedAndSortedOnlinePlayers = computed(() =>
+    this.allOnlinePlayers()
+      .filter((player) => player.isConnected)
+      .sort((player1, player2) => player1.position - player2.position)
+  );
   readonly players = computed(() => {
     const selectedPlayers =
       this.game().id === LOCAL_GAME_ID
         ? this.localPlayers()
-        : this.onlinePlayers()
-            .filter((player) => player.isConnected)
-            .sort((player1, player2) => player1.position - player2.position);
+        : this.connectedAndSortedOnlinePlayers();
 
     return selectedPlayers;
   });
@@ -102,7 +105,7 @@ export class PlayerService {
         | null
     );
 
-    this.onlinePlayers = signal([]);
+    this.allOnlinePlayers = signal([]);
 
     const savedGame = this.game();
 
@@ -153,12 +156,12 @@ export class PlayerService {
     const _newPlayer = await this.apiService.createPlayer(
       newPlayer,
       gameId,
-      this.onlinePlayers().length,
+      this.allOnlinePlayers().length,
       isHost
     );
 
     if (_newPlayer) {
-      this.onlinePlayers.update((players) => [...players, _newPlayer]);
+      this.allOnlinePlayers.update((players) => [...players, _newPlayer]);
       this.playerId.set(_newPlayer.id);
     }
 
@@ -166,13 +169,13 @@ export class PlayerService {
   }
 
   clearOnlinePlayers() {
-    this.onlinePlayers.set([]);
+    this.allOnlinePlayers.set([]);
   }
 
   getOnlinePlayers(gameId: string) {
     this.apiService
       .getPlayersByGameId(gameId)
-      .then((players) => this.onlinePlayers.set(players ?? []));
+      .then((players) => this.allOnlinePlayers.set(players ?? []));
   }
 
   async updateOnlinePlayer(
@@ -185,7 +188,7 @@ export class PlayerService {
     });
 
     if (updatedPlayer) {
-      this.onlinePlayers.update((players) =>
+      this.allOnlinePlayers.update((players) =>
         players.map((player) =>
           player.id === updatedPlayer.id ? updatedPlayer : player
         )
@@ -204,7 +207,7 @@ export class PlayerService {
     )) as PlayerModel | null;
 
     if (deletedPlayer) {
-      this.onlinePlayers.update((players) =>
+      this.allOnlinePlayers.update((players) =>
         players.filter((player) => player.id !== playerId)
       );
     }
@@ -224,7 +227,7 @@ export class PlayerService {
   }
 
   reorderOnlinePlayers(previousIndex: number, currentIndex: number) {
-    const players = this.onlinePlayers();
+    const players = this.connectedAndSortedOnlinePlayers();
     moveItemInArray(players, previousIndex, currentIndex);
 
     for (let i = 0; i < players.length; i++) {
@@ -293,7 +296,7 @@ export class PlayerService {
     if (message.action === WebSocketActions.UpdatePlayer) {
       const players = await this.apiService.getPlayersByGameId(this.game().id);
 
-      this.onlinePlayers.set(players ?? []);
+      this.allOnlinePlayers.set(players ?? []);
     }
 
     // Change Active Player

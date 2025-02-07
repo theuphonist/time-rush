@@ -3,7 +3,7 @@ import { PlayerNameWithIconComponent } from '../shared/player-name-with-icon.com
 import { RouterLink } from '@angular/router';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { ButtonModule } from 'primeng/button';
-import { GameTypes, PlayerModel } from './types';
+import { PlayerModel } from './types';
 
 @Component({
   selector: 'time-rush-player-list',
@@ -36,10 +36,10 @@ import { GameTypes, PlayerModel } from './types';
           <time-rush-player-name-with-icon [player]="_player" />
         </div>
 
-        @if(player().id === _player.id || gameType() === GameTypes.Local) {
+        @if(player().id === _player.id || isLocalGame()) {
         <a
           class="text-primary px-2 py-2"
-          [routerLink]="'/edit-player/' + [_player.id] + '/' + gameType()"
+          [routerLink]="'/edit-player/' + [_player.id]"
         >
           <i class="pi pi-pencil"></i>
         </a>
@@ -49,16 +49,20 @@ import { GameTypes, PlayerModel } from './types';
         <div class="surface-200 h-4rem w-full" *cdkDragPlaceholder></div>
 
         <!-- Drag Preview -->
-        <div class="flex align-items-center surface-0 w-full" *cdkDragPreview>
+        <div
+          class="flex align-items-center surface-0 w-full py-2"
+          *cdkDragPreview
+        >
           <div class="pi pi-bars px-3 py-2 text-400" cdkDragHandle></div>
+
           <time-rush-player-name-with-icon [player]="_player" />
         </div>
       </div>
       }
     </div>
-    @if(gameType() === GameTypes.Local){
+    @if(isLocalGame()){
     <a
-      [routerLink]="'/new-player/' + GameTypes.Local"
+      routerLink="/new-player"
       class="block flex align-items-center justify-content-center w-full mt-2 h-3rem surface-200 border-transparent border-round text-500 no-underline"
       ><i class="pi pi-plus"></i
     ></a>
@@ -72,10 +76,10 @@ import { GameTypes, PlayerModel } from './types';
 export class PlayerListComponent {
   readonly players = input.required<PlayerModel[]>();
   readonly player = input.required<PlayerModel>();
-  readonly gameType = input.required<GameTypes>();
+  readonly isLocalGame = input.required<boolean>();
 
   readonly listIsReorderable = computed(
-    () => this.player().isHost || this.gameType() === GameTypes.Local
+    () => this.player().isHost || this.isLocalGame()
   );
 
   readonly playerOrderChange = output<CdkDragDrop<string[]>>();
@@ -83,6 +87,4 @@ export class PlayerListComponent {
   onPlayerDrop(event: CdkDragDrop<string[]>): void {
     this.playerOrderChange.emit(event);
   }
-
-  readonly GameTypes = GameTypes;
 }

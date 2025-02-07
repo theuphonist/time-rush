@@ -10,9 +10,9 @@ import { ManageLocalPlayersPageComponent } from './feature/manage-local-players-
 export const routes: Routes = [
   { path: 'home', component: HomePageComponent },
   { path: 'new-game', component: NewGamePageComponent },
-  { path: 'new-player/:gameType', component: NewPlayerPageComponent },
+  { path: 'new-player', component: NewPlayerPageComponent },
   {
-    path: 'edit-player/:playerId/:gameType',
+    path: 'edit-player/:playerId',
     component: EditPlayerPageComponent,
   },
   { path: 'active-game', component: ActiveGamePageComponent },
