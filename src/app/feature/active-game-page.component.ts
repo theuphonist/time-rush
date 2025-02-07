@@ -48,11 +48,7 @@ import { LOCAL_GAME_ID } from '../shared/constants';
     @if (showEndTurnButton()) {
     <p-button
       styleClass="w-full h-8rem mt-6"
-      [label]="
-        'Tap to start ' +
-        (nextPlayer()?.name ?? 'Next Player' | possessiveName) +
-        ' turn'
-      "
+      [label]="endTurnButtonText()"
       (click)="changeActivePlayer()"
     />} } @else {
     <p class="mt-page-content font-italic">
@@ -76,10 +72,24 @@ export class ActiveGamePageComponent {
 
   readonly showEndTurnButton = computed(
     () =>
-      this.game().id === LOCAL_GAME_ID ||
+      this.gameService.isLocalGame() ||
       (!this.activePlayerId() && this.player().isHost) ||
       this.player().id === this.activePlayerId()
   );
+
+  readonly endTurnButtonText = computed(() => {
+    if (this.gameService.isLocalGame()) {
+      return (
+        'Tap to start ' + (this.nextPlayer()?.name ?? 'Next Player') + "'s turn"
+      );
+    }
+
+    if (!this.activePlayerId()) {
+      return 'Tap to start game';
+    }
+
+    return 'Tap to end your turn';
+  });
 
   readonly timerStates: WritableSignal<boolean[]> = signal(
     new Array((this.players() ?? []).length).fill(false)
