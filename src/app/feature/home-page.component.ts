@@ -30,7 +30,8 @@ import { PlayerService } from '../data-access/player.service';
           aria-describedby="join-code-description"
           pInputText
           placeholder="Join code"
-          [(ngModel)]="joinCode"
+          [ngModel]="joinCode()"
+          (ngModelChange)="joinCode.set($event.toUpperCase())"
           (keydown.enter)="onJoinGameButtonClick()"
         />
         <p-button
