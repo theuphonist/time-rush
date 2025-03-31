@@ -5,25 +5,19 @@ import {
   signal,
   WritableSignal,
 } from '@angular/core';
-import { HeaderComponent } from '../shared/header.component';
+import { Router } from '@angular/router';
+import { Confirmation } from 'primeng/api';
+import { ButtonModule } from 'primeng/button';
 import { GameService } from '../data-access/game.service';
 import { PlayerService } from '../data-access/player.service';
-import { PlayerTimerComponent } from '../shared/player-timer.component';
-import { ButtonModule } from 'primeng/button';
-import { PossessiveNamePipe } from '../shared/possessive-name.pipe';
-import { Confirmation } from 'primeng/api';
-import { Router } from '@angular/router';
-import { LOCAL_GAME_ID } from '../shared/constants';
+import { HeaderComponent } from '../ui/header.component';
+import { PlayerTimerComponent } from '../ui/player-timer.component';
+import { LOCAL_GAME_ID } from '../util/constants';
 
 @Component({
   selector: 'time-rush-active-game-page',
   standalone: true,
-  imports: [
-    HeaderComponent,
-    PlayerTimerComponent,
-    ButtonModule,
-    PossessiveNamePipe,
-  ],
+  imports: [HeaderComponent, PlayerTimerComponent, ButtonModule],
   template: `
     <time-rush-header
       [text]="game().name"
@@ -73,7 +67,7 @@ export class ActiveGamePageComponent {
   readonly showEndTurnButton = computed(
     () =>
       this.gameService.isLocalGame() ||
-      (!this.activePlayerId() && this.player().isHost) ||
+      !this.activePlayerId() ||
       this.player().id === this.activePlayerId()
   );
 

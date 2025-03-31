@@ -1,4 +1,5 @@
 import { DEFAULT_PLAYER_COLORS } from './constants';
+import { Game, GameStatuses } from './game-types';
 
 export function getRandomPlayerColor(): (typeof DEFAULT_PLAYER_COLORS)[number] {
   const randomIndex = Math.floor(Math.random() * DEFAULT_PLAYER_COLORS.length);
@@ -14,4 +15,8 @@ export function getContrastingColorClass(colorHex: string) {
   const luminance = (0.299 * red + 0.587 * green + 0.114 * blue) / 255;
 
   return luminance > 0.5 ? 'gray-900' : 'gray-0';
+}
+
+export function isJoinable(game: Game) {
+  return game.status === GameStatuses.Pending;
 }

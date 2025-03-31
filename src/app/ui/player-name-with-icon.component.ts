@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
+import { Player } from '../util/player-types';
 import { PlayerIconComponent } from './player-icon.component';
-import { PlayerModel } from './types';
 
 @Component({
   selector: 'time-rush-player-name-with-icon',
@@ -17,5 +17,5 @@ import { PlayerModel } from './types';
   </div>`,
 })
 export class PlayerNameWithIconComponent {
-  player = input.required<PlayerModel>();
+  player = input.required<Player>();
 }

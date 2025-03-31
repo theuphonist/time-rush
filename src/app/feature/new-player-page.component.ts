@@ -1,21 +1,22 @@
 import { Component, computed, inject } from '@angular/core';
-import { InputTextModule } from 'primeng/inputtext';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { HeaderComponent } from '../shared/header.component';
-import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
-import { ColorPickerModule } from 'primeng/colorpicker';
-import { PlayerIconComponent } from '../shared/player-icon.component';
 import { MessageService } from 'primeng/api';
-import { PlayerFormViewModel, ToFormGroup } from '../shared/types';
-import { PlayerService } from '../data-access/player.service';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ButtonModule } from 'primeng/button';
+import { ColorPickerModule } from 'primeng/colorpicker';
+import { InputTextModule } from 'primeng/inputtext';
 import { GameService } from '../data-access/game.service';
+import { PlayerService } from '../data-access/player.service';
+import { HeaderComponent } from '../ui/header.component';
+import { PlayerIconComponent } from '../ui/player-icon.component';
+import { PlayerForm } from '../util/player-types';
+import { ToFormGroup } from '../util/utility-types';
 
 @Component({
   selector: 'time-rush-new-player-page',
@@ -90,11 +91,10 @@ export class NewPlayerPageComponent {
   readonly game = this.gameService.game;
   readonly isLocalGame = this.gameService.isLocalGame;
 
-  readonly newPlayerForm: ToFormGroup<PlayerFormViewModel> =
-    this.formBuilder.group({
-      name: ['', Validators.required],
-      color: ['#FF0000', Validators.required],
-    });
+  readonly newPlayerForm: ToFormGroup<PlayerForm> = this.formBuilder.group({
+    name: ['', Validators.required],
+    color: ['#FF0000', Validators.required],
+  });
 
   readonly nameControlSignal = toSignal(
     this.newPlayerForm.get('name')!.valueChanges
@@ -124,17 +124,18 @@ export class NewPlayerPageComponent {
 
     if (this.isLocalGame()) {
       this.playerService.createLocalPlayer(
-        this.newPlayerForm.value as PlayerFormViewModel
+        this.newPlayerForm.value as PlayerForm
       );
 
       this.router.navigate(['/manage-players']);
       return;
     }
 
-    this.playerService.createOnlinePlayer(
-      this.newPlayerForm.value as PlayerFormViewModel,
-      this.gameService.game().id
-    );
+    // this.playerService.createOnlinePlayer(
+    //   this.newPlayerForm.value as PlayerForm,
+    //   this.gameService.game().id,
+    //   -1
+    // );
 
     this.router.navigate(['/lobby']);
   }

@@ -1,9 +1,10 @@
 import { booleanAttribute, Component, computed, input } from '@angular/core';
-import { interval, map, of, startWith, switchMap } from 'rxjs';
 import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { TimeWithColonsPipe } from './time-with-colons.pipe';
-import { FontColorClassFromBackgroundPipe } from './font-color-class-from-background.pipe';
-import { PlayerModel, TimeUnits } from './types';
+import { interval, map, of, startWith, switchMap } from 'rxjs';
+import { FontColorClassFromBackgroundPipe } from '../util/font-color-class-from-background.pipe';
+import { TimeUnits } from '../util/game-types';
+import { Player } from '../util/player-types';
+import { TimeWithColonsPipe } from '../util/time-with-colons.pipe';
 
 @Component({
   selector: 'time-rush-player-timer',
@@ -59,7 +60,7 @@ export class PlayerTimerComponent {
   readonly isActive = input(false, { transform: booleanAttribute });
   readonly turnLength = input.required<number>();
   readonly timeUnits = input.required<TimeUnits>();
-  readonly player = input.required<PlayerModel>();
+  readonly player = input.required<Player>();
 
   readonly timerWidthsInPercent = { active: 100, inactive: 50 };
   readonly timerHeightsInRem = { active: 4, inactive: 2.5 };

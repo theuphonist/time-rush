@@ -1,22 +1,36 @@
 import {
+  APP_INITIALIZER,
   ApplicationConfig,
-  provideZoneChangeDetection,
   isDevMode,
+  provideZoneChangeDetection,
 } from '@angular/core';
-import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 
-import { routes } from './app.routes';
+import { provideHttpClient } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideServiceWorker } from '@angular/service-worker';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { provideHttpClient } from '@angular/common/http';
+import { routes } from './app.routes';
+import { StateService } from './data-access/state.service';
+
+function notifyStateOfInitialization(state: StateService) {
+  return (): void => state.dispatch(state.actions.appInitialized, undefined);
+}
 
 export const appConfig: ApplicationConfig = {
   providers: [
     // PrimeNG
     MessageService,
     ConfirmationService,
+
+    // Initialization
+    {
+      provide: APP_INITIALIZER,
+      useFactory: notifyStateOfInitialization,
+      deps: [StateService],
+      multi: true,
+    },
 
     // Other
     provideZoneChangeDetection({ eventCoalescing: true }),

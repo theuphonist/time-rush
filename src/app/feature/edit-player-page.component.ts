@@ -1,21 +1,22 @@
-import { Component, computed, inject, input, OnInit } from '@angular/core';
-import { InputTextModule } from 'primeng/inputtext';
+import { Component, OnInit, computed, inject, input } from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { HeaderComponent } from '../shared/header.component';
-import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
-import { ColorPickerModule } from 'primeng/colorpicker';
-import { PlayerIconComponent } from '../shared/player-icon.component';
 import { ConfirmationService, MessageService } from 'primeng/api';
-import { PlayerFormViewModel, ToFormGroup } from '../shared/types';
-import { PlayerService } from '../data-access/player.service';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ButtonModule } from 'primeng/button';
+import { ColorPickerModule } from 'primeng/colorpicker';
+import { InputTextModule } from 'primeng/inputtext';
 import { GameService } from '../data-access/game.service';
+import { PlayerService } from '../data-access/player.service';
+import { HeaderComponent } from '../ui/header.component';
+import { PlayerIconComponent } from '../ui/player-icon.component';
+import { PlayerForm } from '../util/player-types';
+import { ToFormGroup } from '../util/utility-types';
 
 @Component({
   selector: 'time-rush-edit-player-page',
@@ -100,11 +101,10 @@ export class EditPlayerPageComponent implements OnInit {
     this.playerService.players().find((player) => player.id === this.playerId())
   );
 
-  readonly editPlayerForm: ToFormGroup<PlayerFormViewModel> =
-    this.formBuilder.group({
-      name: ['', Validators.required],
-      color: ['#FF0000', Validators.required],
-    });
+  readonly editPlayerForm: ToFormGroup<PlayerForm> = this.formBuilder.group({
+    name: ['', Validators.required],
+    color: ['#FF0000', Validators.required],
+  });
 
   ngOnInit() {
     this.editPlayerForm.patchValue({ ...this.originalPlayer() });
@@ -131,7 +131,7 @@ export class EditPlayerPageComponent implements OnInit {
     if (this.isLocalGame()) {
       this.playerService.updateLocalPlayer(
         this.playerId(),
-        this.editPlayerForm.value as PlayerFormViewModel
+        this.editPlayerForm.value as PlayerForm
       );
 
       this.router.navigate(['/manage-players']);
@@ -139,8 +139,8 @@ export class EditPlayerPageComponent implements OnInit {
     }
 
     this.playerService.updateOnlinePlayer(
-      this.playerId(),
-      this.editPlayerForm.value as PlayerFormViewModel
+      // this.playerId(),
+      this.editPlayerForm.value as PlayerForm
     );
 
     this.router.navigate(['/lobby']);

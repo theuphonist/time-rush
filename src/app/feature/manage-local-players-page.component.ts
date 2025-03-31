@@ -1,11 +1,11 @@
+import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Component, inject } from '@angular/core';
-import { HeaderComponent } from '../shared/header.component';
-import { PlayerService } from '../data-access/player.service';
 import { Router } from '@angular/router';
-import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { ButtonModule } from 'primeng/button';
-import { GameTypes } from '../shared/types';
-import { PlayerListComponent } from '../shared/player-list.component';
+import { PlayerService } from '../data-access/player.service';
+import { HeaderComponent } from '../ui/header.component';
+import { PlayerListComponent } from '../ui/player-list.component';
+import { GameTypes } from '../util/game-types';
 
 @Component({
   selector: 'time-rush-manage-local-players-page',

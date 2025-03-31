@@ -1,12 +1,12 @@
+import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Component, inject } from '@angular/core';
-import { HeaderComponent } from '../shared/header.component';
-import { GameService } from '../data-access/game.service';
-import { PlayerListComponent } from '../shared/player-list.component';
-import { PlayerService } from '../data-access/player.service';
-import { ButtonModule } from 'primeng/button';
 import { Router } from '@angular/router';
 import { Confirmation } from 'primeng/api';
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { ButtonModule } from 'primeng/button';
+import { GameService } from '../data-access/game.service';
+import { PlayerService } from '../data-access/player.service';
+import { HeaderComponent } from '../ui/header.component';
+import { PlayerListComponent } from '../ui/player-list.component';
 
 @Component({
   selector: 'time-rush-game-lobby-page',

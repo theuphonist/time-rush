@@ -1,30 +1,29 @@
-import { Component, inject, signal, WritableSignal } from '@angular/core';
-import { HeaderComponent } from '../shared/header.component';
-import { InputTextModule } from 'primeng/inputtext';
+import {
+  Component,
+  computed,
+  inject,
+  signal,
+  WritableSignal,
+} from '@angular/core';
+import { toSignal } from '@angular/core/rxjs-interop';
 import {
   FormBuilder,
   FormsModule,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { InputNumberModule } from 'primeng/inputnumber';
-import { DropdownModule } from 'primeng/dropdown';
-import { ButtonModule } from 'primeng/button';
-import { Router } from '@angular/router';
-import { SelectButtonModule } from 'primeng/selectbutton';
-import { GameService } from '../data-access/game.service';
 import { MessageService } from 'primeng/api';
-import {
-  TimeUnits,
-  GameTypes,
-  ToFormGroup,
-  SessionStorageKeys,
-  GameFormViewModel,
-} from '../shared/types';
+import { ButtonModule } from 'primeng/button';
+import { DropdownModule } from 'primeng/dropdown';
+import { InputNumberModule } from 'primeng/inputnumber';
+import { InputTextModule } from 'primeng/inputtext';
+import { SelectButtonModule } from 'primeng/selectbutton';
 import { SessionStorageService } from '../data-access/session-storage.service';
-import { PlayerService } from '../data-access/player.service';
-import { getRandomPlayerColor } from '../shared/helpers';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { StateService } from '../data-access/state.service';
+import { HeaderComponent } from '../ui/header.component';
+import { GameForm, GameTypes, TimeUnits } from '../util/game-types';
+import { SessionStorageKeys } from '../util/session-storage-types';
+import { ToFormGroup } from '../util/utility-types';
 
 @Component({
   selector: 'time-rush-new-game-page',
@@ -48,15 +47,13 @@ import { toSignal } from '@angular/core/rxjs-interop';
           <input
             class="w-full mt-2 mb-1"
             type="text"
-            aria-describedby="game-name-help"
             pInputText
             placeholder="Game name"
             formControlName="name"
             (ngModelChange)="onInputChange()"
-          /> </label
-        ><span class="hidden" id="game-name-help"
-          >What should this game be called?</span
-        >
+            aria-description="What should this game be called?"
+          />
+        </label>
       </div>
 
       <!-- Turn length input -->
@@ -81,10 +78,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
               (ngModelChange)="onInputChange()"
               formControlName="turnLengthUnits"
             />
-          </div> </label
-        ><span class="hidden" id="turn-length-help"
-          >What's the time limit for each turn?</span
-        >
+          </div>
+        </label>
       </div>
 
       <!-- Game type -->
@@ -110,11 +105,8 @@ import { toSignal } from '@angular/core/rxjs-interop';
         <div
           class="w-full font-semibold flex justify-content-center align-items-center gap-2"
         >
-          @if (gameTypeControlSignal() === GameTypes.Local) {
-          <span>Add players</span>
-          } @else {
-          <span>Game lobby</span>
-          }<i class="pi pi-arrow-right"></i>
+          <span>{{ submitButtonLabel() }}</span>
+          <i class="pi pi-arrow-right"></i>
         </div>
       </p-button>
     </form>
@@ -130,28 +122,25 @@ import { toSignal } from '@angular/core/rxjs-interop';
   `,
 })
 export class NewGamePageComponent {
-  private readonly gameService = inject(GameService);
-  private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly sessionStorageService = inject(SessionStorageService);
-  private readonly playerService = inject(PlayerService);
+  private readonly state = inject(StateService);
 
-  readonly newGameForm: ToFormGroup<GameFormViewModel> = this.formBuilder.group(
-    {
-      name: ['', Validators.required],
-      turnLength: [0, [Validators.required, Validators.min(1)]],
-      turnLengthUnits: [TimeUnits.Seconds, Validators.required],
-      gameType: [GameTypes.Local, Validators.required],
-    }
-  );
+  readonly newGameForm: ToFormGroup<GameForm> = this.formBuilder.group({
+    name: ['', Validators.required],
+    turnLength: [0, [Validators.required, Validators.min(1)]],
+    turnLengthUnits: [TimeUnits.Seconds, Validators.required],
+    gameType: [GameTypes.Local, Validators.required],
+  });
 
   readonly gameTypeControlSignal = toSignal(
     this.newGameForm.get('gameType')!.valueChanges
   );
 
-  readonly inputTimer: WritableSignal<ReturnType<typeof setTimeout> | null> =
-    signal(null);
+  private readonly inputTimer: WritableSignal<ReturnType<
+    typeof setTimeout
+  > | null> = signal(null);
 
   readonly gameTypeOptions = [
     { label: "Pass 'n' Play", value: GameTypes.Local },
@@ -160,10 +149,16 @@ export class NewGamePageComponent {
 
   readonly timeUnits = Object.values(TimeUnits);
 
+  readonly submitButtonLabel = computed(() =>
+    this.gameTypeControlSignal() === GameTypes.Local
+      ? 'Add players'
+      : 'Game lobby'
+  );
+
   ngOnInit(): void {
     const lastNewGameForm = this.sessionStorageService.getItem(
       SessionStorageKeys.NewGameForm
-    ) as Partial<GameFormViewModel>;
+    ) as Partial<GameForm>;
 
     if (lastNewGameForm) {
       this.newGameForm.patchValue(lastNewGameForm);
@@ -186,7 +181,7 @@ export class NewGamePageComponent {
     );
   }
 
-  async onStartGameButtonClick(): Promise<void> {
+  onStartGameButtonClick(): void {
     // all game props should be defined here, but just in case
     if (!this.newGameForm.valid) {
       this.messageService.add({
@@ -197,40 +192,15 @@ export class NewGamePageComponent {
       return;
     }
 
-    const newGame = this.newGameForm.value as GameFormViewModel;
+    const gameForm = this.newGameForm.value as GameForm;
 
-    this.sessionStorageService.setItem(SessionStorageKeys.NewGameForm, newGame);
-
-    if (newGame.gameType === GameTypes.Local) {
-      this.gameService.createLocalGame(newGame);
-      this.router.navigate(['/manage-players']);
-      return;
-    }
-
-    this.playerService.clearOnlinePlayers();
-
-    const createdGame = await this.gameService.createOnlineGame(newGame);
-
-    if (!createdGame) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Failed to create game',
-        detail: 'An unknown error occurred.  Please try again.',
-      });
-      return;
-    }
-
-    this.playerService.createOnlinePlayer(
-      {
-        name: 'Host',
-        color: getRandomPlayerColor(),
-      },
-      createdGame.id,
-      true
+    this.sessionStorageService.setItem(
+      SessionStorageKeys.NewGameForm,
+      gameForm
     );
 
-    this.router.navigate(['/lobby']);
+    this.state.dispatch(this.state.actions.createGameButtonClicked, {
+      gameForm,
+    });
   }
-
-  readonly GameTypes = GameTypes;
 }

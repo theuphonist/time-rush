@@ -1,31 +1,34 @@
 import {
-  computed,
   DestroyRef,
+  Injectable,
+  WritableSignal,
+  computed,
   effect,
   inject,
-  Injectable,
   signal,
-  WritableSignal,
 } from '@angular/core';
-import {
-  GameModel,
-  GameFormViewModel,
-  SessionStorageKeys,
-  TimeUnits,
-  WebSocketActions,
-  WebSocketMessage,
-  WebSocketTopics,
-} from '../shared/types';
-import { ApiService } from './api.service';
-import { SessionStorageService } from './session-storage.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { Endpoints } from '../util/api-types';
 import {
   BASE_INCOMING_WS_TOPIC,
   BASE_OUTGOING_WS_TOPIC,
+  LOCAL_CREATED_AT,
   LOCAL_GAME_ID,
-} from '../shared/constants';
+  LOCAL_JOIN_CODE,
+  LOCAL_PLAYER_ID,
+} from '../util/constants';
+import { Game, GameForm, GameStatuses, TimeUnits } from '../util/game-types';
+import { SessionStorageKeys } from '../util/session-storage-types';
+import {
+  WebSocketActions,
+  WebSocketMessage,
+  WebSocketTopics,
+} from '../util/web-socket-types';
+import { ApiService } from './api.service';
+import { SessionStorageService } from './session-storage.service';
 import { WebSocketService } from './web-socket.service';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
@@ -37,12 +40,15 @@ export class GameService {
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
 
-  readonly game: WritableSignal<GameModel> = signal({
+  readonly game: WritableSignal<Game> = signal({
     id: LOCAL_GAME_ID,
     name: 'Time Rush',
     turnLength: 30,
     turnLengthUnits: TimeUnits.Seconds,
     joinCode: '_',
+    status: GameStatuses.Pending,
+    hostPlayerId: 'foo',
+    createdAt: new Date(),
   });
 
   readonly isLocalGame = computed(() => this.game().id === LOCAL_GAME_ID);
@@ -50,7 +56,7 @@ export class GameService {
   constructor() {
     const savedGame = this.sessionStorageService.getItem(
       SessionStorageKeys.Game
-    ) as GameModel | undefined;
+    ) as Game | undefined;
 
     if (savedGame) {
       this.game.set(savedGame);
@@ -72,45 +78,22 @@ export class GameService {
   });
 
   // Online Game CRUD
-  async createOnlineGame(
-    newGame: GameFormViewModel
-  ): Promise<GameModel | undefined> {
-    const _newGame = await this.apiService.createGame(newGame);
+  createOnlineGame(gameForm: GameForm): Observable<Game> {
+    return this.apiService.post<Game>(Endpoints.GAME, gameForm);
+  }
 
-    if (_newGame) {
-      this.game.set(_newGame);
-      this.webSocketService.subscribe(
-        `${BASE_INCOMING_WS_TOPIC}/${WebSocketTopics.Game}/${_newGame.id}`
-      );
-    }
+  getGameById(gameId: Game['id']): Observable<Game | null> {
+    return this.apiService.get<Game | null>([Endpoints.GAME, gameId]);
+  }
 
-    return _newGame;
+  getGamesByJoinCode(joinCode: Game['joinCode']): Observable<Game[]> {
+    return this.apiService.get<Game[]>(Endpoints.GAME, {
+      joinCode,
+    });
   }
 
   async leaveOnlineGame() {
-    this.game.set({
-      id: LOCAL_GAME_ID,
-      name: 'Time Rush',
-      turnLength: 30,
-      turnLengthUnits: TimeUnits.Seconds,
-      joinCode: '_',
-    });
-
     this.webSocketService.unsubscribeAll();
-  }
-
-  // TODO: disallow joining of "inactive" games
-  async joinOnlineGame(joinCode: string): Promise<GameModel | undefined> {
-    const game = await this.apiService.getGameByJoinCode(joinCode);
-
-    if (game) {
-      this.game.set(game);
-      this.webSocketService.subscribe(
-        `${BASE_INCOMING_WS_TOPIC}/${WebSocketTopics.Game}/${game.id}`
-      );
-    }
-
-    return game;
   }
 
   async startOnlineGame() {
@@ -121,12 +104,15 @@ export class GameService {
   }
 
   // Local Game CRUD
-  createLocalGame(newGame: GameFormViewModel): void {
-    this.game.set({
+  createLocalGame(newGame: GameForm): Game {
+    return {
       ...newGame,
       id: LOCAL_GAME_ID,
-      joinCode: '_',
-    });
+      joinCode: LOCAL_JOIN_CODE,
+      status: GameStatuses.Local,
+      hostPlayerId: LOCAL_PLAYER_ID,
+      createdAt: LOCAL_CREATED_AT,
+    };
   }
 
   // Misc

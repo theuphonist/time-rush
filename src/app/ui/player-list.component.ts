@@ -1,9 +1,9 @@
-import { Component, computed, input, output } from '@angular/core';
-import { PlayerNameWithIconComponent } from '../shared/player-name-with-icon.component';
-import { RouterLink } from '@angular/router';
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
+import { Component, computed, input, output } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
-import { PlayerModel } from './types';
+import { Player } from '../util/player-types';
+import { PlayerNameWithIconComponent } from './player-name-with-icon.component';
 
 @Component({
   selector: 'time-rush-player-list',
@@ -74,13 +74,11 @@ import { PlayerModel } from './types';
   `,
 })
 export class PlayerListComponent {
-  readonly players = input.required<PlayerModel[]>();
-  readonly player = input.required<PlayerModel>();
+  readonly players = input.required<Player[]>();
+  readonly player = input.required<Player>();
   readonly isLocalGame = input.required<boolean>();
 
-  readonly listIsReorderable = computed(
-    () => this.player().isHost || this.isLocalGame()
-  );
+  readonly listIsReorderable = computed(() => this.isLocalGame());
 
   readonly playerOrderChange = output<CdkDragDrop<string[]>>();
 
