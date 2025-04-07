@@ -12,7 +12,7 @@ export const BASE_INCOMING_WS_TOPIC = '/topic';
 export const BASE_OUTGOING_WS_TOPIC = '/timerush';
 export const MAX_SUBSCRIBE_RETRIES = 5;
 export const MAX_SEND_RETRIES = 5;
-export const CONNECTION_TIMEOUT = 5000;
+export const CONNECTION_TIMEOUT = 2500;
 
 // Misc
 export const DEFAULT_PLAYER_COLORS: `#${string}`[] = [
@@ -36,3 +36,4 @@ export const LOCAL_GAME_ID = '__localgame__';
 export const LOCAL_PLAYER_ID = '__localplayer__';
 export const LOCAL_JOIN_CODE = '__localjoincode__';
 export const LOCAL_CREATED_AT = new Date();
+export const LOCAL_SESSION_ID = '__localsessionid__';

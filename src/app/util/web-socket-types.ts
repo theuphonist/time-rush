@@ -1,26 +1,19 @@
-import { Player } from './player-types';
-
-export interface WebSocketMessage {
-  action?: WebSocketActions;
-  data?: WebSocketMessageData;
-}
-
-export interface WebSocketMessageData {
-  playerId?: Player['id'] | null;
-  activePlayerId?: Player['id'];
-}
+export type WebSocketMessage =
+  // actions that do NOT have associated data
+  {
+    action?:
+      | WebSocketActions.GameStarted
+      | WebSocketActions.PlayersOrGameUpdated;
+    data?: unknown;
+  };
 
 export enum WebSocketActions {
-  // Player Actions
-  UpdatePlayer = 'updatePlayer',
-  ChangeActivePlayer = 'changeActivePlayer',
-
-  // Game Actions
-  StartGame = 'gameStarted',
+  // incoming (from server)
+  PlayersOrGameUpdated = 'playersOrGameUpdated',
+  GameStarted = 'gameStarted',
 }
 
 export enum WebSocketTopics {
   Game = 'game',
-  MapSession = 'map-session',
-  DeleteSession = 'delete-session',
+  Connect = 'connect',
 }

@@ -1,8 +1,9 @@
-import { DragDropModule, CdkDragDrop } from '@angular/cdk/drag-drop';
+import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { Component, inject } from '@angular/core';
 import { Router } from '@angular/router';
 import { ButtonModule } from 'primeng/button';
 import { PlayerService } from '../data-access/player.service';
+import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerListComponent } from '../ui/player-list.component';
 import { GameTypes } from '../util/game-types';
@@ -26,6 +27,7 @@ import { GameTypes } from '../util/game-types';
         [player]="player()"
         [isLocalGame]="true"
         (playerOrderChange)="onPlayerOrderChange($event)"
+        [hostPlayerId]="hostPlayerId()"
       />
 
       <p-button
@@ -42,9 +44,11 @@ import { GameTypes } from '../util/game-types';
 export class ManageLocalPlayersPageComponent {
   private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
+  private readonly state = inject(StateService);
 
   readonly players = this.playerService.players;
   readonly player = this.playerService.player;
+  readonly hostPlayerId = this.state.selectHostPlayerId;
 
   onPlayerOrderChange(event: CdkDragDrop<string[]>): void {
     this.playerService.reorderLocalPlayers(

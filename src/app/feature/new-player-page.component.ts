@@ -13,6 +13,7 @@ import { ColorPickerModule } from 'primeng/colorpicker';
 import { InputTextModule } from 'primeng/inputtext';
 import { GameService } from '../data-access/game.service';
 import { PlayerService } from '../data-access/player.service';
+import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerIconComponent } from '../ui/player-icon.component';
 import { PlayerForm } from '../util/player-types';
@@ -38,12 +39,15 @@ import { ToFormGroup } from '../util/utility-types';
     @if (!isLocalGame()) {
     <p class="text-lg mt-page-content">
       You're joining
-      <span class="font-bold">{{ game().name }} ({{ game().joinCode }})</span>
+      <span class="font-bold">{{ game()?.name }} ({{ game()?.joinCode }})</span>
     </p>
     }
     <form [formGroup]="newPlayerForm" (ngSubmit)="onCreatePlayerButtonClick()">
       <!-- Player name input -->
-      <div [class]="isLocalGame() ? 'mt-page-content' : 'mt-5'">
+      <div
+        [class.mt-page-content]="isLocalGame()"
+        [class.mt-5]="!isLocalGame()"
+      >
         <label>
           <span class="text-600 text-lg font-semibold">Player Name</span>
           <input
@@ -87,9 +91,10 @@ export class NewPlayerPageComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly playerService = inject(PlayerService);
   private readonly gameService = inject(GameService);
+  private readonly state = inject(StateService);
 
-  readonly game = this.gameService.game;
-  readonly isLocalGame = this.gameService.isLocalGame;
+  readonly game = this.state.selectGame;
+  readonly isLocalGame = this.state.selectIsLocalGame;
 
   readonly newPlayerForm: ToFormGroup<PlayerForm> = this.formBuilder.group({
     name: ['', Validators.required],
@@ -109,7 +114,7 @@ export class NewPlayerPageComponent {
       return 'Create ' + (this.nameControlSignal() ?? 'Player');
     }
 
-    return `Join ${this.gameService.game().name}`;
+    return `Join ${this.game()?.name ?? 'Game'}`;
   });
 
   onCreatePlayerButtonClick(): void {
@@ -122,21 +127,8 @@ export class NewPlayerPageComponent {
       return;
     }
 
-    if (this.isLocalGame()) {
-      this.playerService.createLocalPlayer(
-        this.newPlayerForm.value as PlayerForm
-      );
-
-      this.router.navigate(['/manage-players']);
-      return;
-    }
-
-    // this.playerService.createOnlinePlayer(
-    //   this.newPlayerForm.value as PlayerForm,
-    //   this.gameService.game().id,
-    //   -1
-    // );
-
-    this.router.navigate(['/lobby']);
+    this.state.dispatch(this.state.actions.createPlayerButtonClicked, {
+      playerForm: this.newPlayerForm.value as PlayerForm,
+    });
   }
 }

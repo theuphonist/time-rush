@@ -7,7 +7,7 @@ export interface Game {
   turnLengthUnits: TimeUnits;
   joinCode: string;
   status: GameStatuses;
-  hostPlayerId: Player['id'];
+  hostPlayerId: Player['id'] | null;
   createdAt: Date;
 }
 

@@ -33,10 +33,13 @@ import { PlayerNameWithIconComponent } from './player-name-with-icon.component';
           <div class="pi pi-bars px-3 py-2 text-400" cdkDragHandle></div>
           }
 
-          <time-rush-player-name-with-icon [player]="_player" />
+          <time-rush-player-name-with-icon
+            [player]="_player"
+            [isHost]="_player.id === hostPlayerId()"
+          />
         </div>
 
-        @if(player().id === _player.id || isLocalGame()) {
+        @if (player().id === _player.id || isLocalGame()) {
         <a
           class="text-primary px-2 py-2"
           [routerLink]="'/edit-player/' + [_player.id]"
@@ -55,7 +58,10 @@ import { PlayerNameWithIconComponent } from './player-name-with-icon.component';
         >
           <div class="pi pi-bars px-3 py-2 text-400" cdkDragHandle></div>
 
-          <time-rush-player-name-with-icon [player]="_player" />
+          <time-rush-player-name-with-icon
+            [player]="_player"
+            [isHost]="_player.id === hostPlayerId()"
+          />
         </div>
       </div>
       }
@@ -77,8 +83,11 @@ export class PlayerListComponent {
   readonly players = input.required<Player[]>();
   readonly player = input.required<Player>();
   readonly isLocalGame = input.required<boolean>();
+  readonly hostPlayerId = input.required<Player['id'] | undefined>();
 
-  readonly listIsReorderable = computed(() => this.isLocalGame());
+  readonly listIsReorderable = computed(
+    () => this.isLocalGame() || this.hostPlayerId() === this.player().id
+  );
 
   readonly playerOrderChange = output<CdkDragDrop<string[]>>();
 

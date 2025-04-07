@@ -6,7 +6,7 @@ export interface Player {
   color: string;
   gameId: Game['id'];
   position: number;
-  isConnected: boolean;
+  sessionId: string | null;
   createdAt: Date;
 }
 

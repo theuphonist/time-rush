@@ -1,4 +1,4 @@
-import { Injectable, OnDestroy, inject } from '@angular/core';
+import { Injectable, OnDestroy } from '@angular/core';
 import { Client, StompSubscription } from '@stomp/stompjs';
 import {
   Subject,
@@ -7,27 +7,23 @@ import {
   filter,
   firstValueFrom,
   of,
+  tap,
   timeout,
 } from 'rxjs';
 import {
   BASE_INCOMING_WS_TOPIC,
   BASE_OUTGOING_WS_TOPIC,
   CONNECTION_TIMEOUT,
-  LOCAL_PLAYER_ID,
-  MAX_SEND_RETRIES,
   WS_URL,
 } from '../util/constants';
 import { Game } from '../util/game-types';
 import { Player } from '../util/player-types';
-import { SessionStorageKeys } from '../util/session-storage-types';
 import { WebSocketMessage, WebSocketTopics } from '../util/web-socket-types';
-import { SessionStorageService } from './session-storage.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class WebSocketService implements OnDestroy {
-  private readonly sessionStorageService = inject(SessionStorageService);
   private readonly stompClient: Client;
 
   private subscriptions: StompSubscription[] = [];
@@ -44,11 +40,10 @@ export class WebSocketService implements OnDestroy {
   }
 
   ngOnDestroy() {
-    this.unsubscribeAll();
     this.disconnect();
   }
 
-  async connect(): Promise<boolean> {
+  async connect(playerId: Player['id'], gameId: Game['id']): Promise<boolean> {
     this.stompClient.activate();
 
     setTimeout(() => {
@@ -61,6 +56,13 @@ export class WebSocketService implements OnDestroy {
       this.connectionWatcher$.pipe(
         filter((isConnected) => isConnected),
         timeout(CONNECTION_TIMEOUT),
+        tap(() => {
+          this.subscribe(`${BASE_INCOMING_WS_TOPIC}/${gameId}`);
+          this.sendMessage(
+            `${BASE_OUTGOING_WS_TOPIC}/${WebSocketTopics.Connect}`,
+            { data: { playerId } }
+          );
+        }),
         catchError((err) => {
           if (err instanceof TimeoutError) {
             return of(false);
@@ -72,11 +74,12 @@ export class WebSocketService implements OnDestroy {
     );
   }
 
-  private disconnect(): void {
+  disconnect(): void {
+    this.unsubscribeAll();
     this.stompClient.deactivate();
   }
 
-  subscribe(topic: string) {
+  private subscribe(topic: string) {
     this.subscriptions.push(
       this.stompClient.subscribe(topic, (message) => {
         this.messages$.next(JSON.parse(message.body) as WebSocketMessage);
@@ -92,48 +95,16 @@ export class WebSocketService implements OnDestroy {
     this.subscriptions = [];
   }
 
-  sendMessage(
-    destination: string,
-    message: WebSocketMessage,
-    retryNumber?: number
-  ) {
-    if (!this.stompClient.connected && (retryNumber ?? 0) <= MAX_SEND_RETRIES) {
-      setTimeout(
-        () => this.sendMessage(destination, message, (retryNumber ?? 0) + 1),
-        1000
-      );
-      return;
+  sendMessage(destination: string, message: WebSocketMessage): boolean {
+    if (!this.stompClient.connected) {
+      return false;
     }
+
     this.stompClient.publish({
       destination,
       body: JSON.stringify(message),
     });
-  }
 
-  private onConnect() {
-    const playerId = this.sessionStorageService.getItem(
-      SessionStorageKeys.PlayerId
-    ) as Player['id'] | undefined;
-
-    if (playerId && playerId !== LOCAL_PLAYER_ID) {
-      this.sendMessage(
-        `${BASE_OUTGOING_WS_TOPIC}/${WebSocketTopics.MapSession}`,
-        {
-          data: {
-            playerId,
-          },
-        }
-      );
-    }
-
-    const game = this.sessionStorageService.getItem(SessionStorageKeys.Game) as
-      | Game
-      | undefined;
-
-    if (game?.id) {
-      this.subscribe(
-        `${BASE_INCOMING_WS_TOPIC}/${WebSocketTopics.Game}/${game.id}`
-      );
-    }
+    return true;
   }
 }

@@ -7,15 +7,13 @@ import { PlayerIconComponent } from './player-icon.component';
   standalone: true,
   imports: [PlayerIconComponent],
   template: ` <div class="flex align-items-center gap-3">
-    <time-rush-player-icon
-      [playerColor]="player().color"
-      [isHost]="player().isHost"
-    />
+    <time-rush-player-icon [playerColor]="player().color" [isHost]="isHost()" />
     <div class="text-600">
-      {{ player().name + (player().isHost ? ' (Host)' : '') }}
+      {{ player().name + (isHost() ? ' (Host)' : '') }}
     </div>
   </div>`,
 })
 export class PlayerNameWithIconComponent {
-  player = input.required<Player>();
+  readonly player = input.required<Player>();
+  readonly isHost = input.required<boolean>();
 }
