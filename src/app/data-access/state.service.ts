@@ -525,17 +525,19 @@ export class StateService {
       });
     },
     playersReordered: async ({ playerIds }) => {
+      const originalPlayers = this.state().players;
+
+      // optimistically set the state, it will be reverted if an online save fails
+      this.state.update((prev) => ({
+        ...prev,
+        players:
+          prev.players?.map((player) => ({
+            ...player,
+            position: playerIds.findIndex((playerId) => playerId === player.id),
+          })) ?? [],
+      }));
+
       if (this.selectIsLocalGame()) {
-        this.state.update((prev) => ({
-          ...prev,
-          players:
-            prev.players?.map((player) => ({
-              ...player,
-              position: playerIds.findIndex(
-                (playerId) => playerId === player.id,
-              ),
-            })) ?? [],
-        }));
         return;
       }
 
@@ -544,17 +546,21 @@ export class StateService {
       if (!gameId) {
         this.dispatch(this.actions.reorderPlayersFailed, {
           errorDetail: 'Failed to load game data.',
+          originalPlayers,
         });
         return;
       }
 
       const updatedPlayers = await firstValueFrom(
-        this.playerService.reorderOnlinePlayers(gameId, playerIds),
+        this.playerService
+          .reorderOnlinePlayers(gameId, playerIds)
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!updatedPlayers) {
         this.dispatch(this.actions.reorderPlayersFailed, {
           errorDetail: 'Server failed to respond.',
+          originalPlayers,
         });
         return;
       }
@@ -564,12 +570,17 @@ export class StateService {
         players: updatedPlayers,
       }));
     },
-    reorderPlayersFailed: ({ errorDetail }) =>
+    reorderPlayersFailed: ({ errorDetail, originalPlayers }) => {
       this.messageService.add({
         severity: 'error',
         summary: 'Reorder Players Error',
         detail: errorDetail,
-      }),
+      });
+      this.state.update((prev) => ({
+        ...prev,
+        players: originalPlayers,
+      }));
+    },
     updatePlayerButtonClicked: async ({ playerId, playerForm }) => {
       if (isLocalPlayerId(playerId)) {
         this.state.update((prev) => ({

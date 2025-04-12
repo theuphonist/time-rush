@@ -43,6 +43,7 @@ export interface TimeRushActions {
   playersReordered: ActionFunction<{ playerIds: Player['id'][] }>;
   reorderPlayersFailed: ActionFunction<{
     errorDetail: string;
+    originalPlayers: Player[] | undefined;
   }>;
   updatePlayerButtonClicked: ActionFunction<{
     playerId: Player['id'];
