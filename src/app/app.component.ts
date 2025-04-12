@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
-import { RouterOutlet } from '@angular/router';
-import { ToastModule } from 'primeng/toast';
+import { Component, HostListener, inject } from '@angular/core';
+import { Router, RouterOutlet } from '@angular/router';
 import { ConfirmDialogModule } from 'primeng/confirmdialog';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'time-rush-root',
@@ -16,5 +16,12 @@ import { ConfirmDialogModule } from 'primeng/confirmdialog';
   `,
 })
 export class AppComponent {
-  title = 'time-rush';
+  private readonly router = inject(Router);
+
+  @HostListener('document:keydown', ['$event'])
+  navigateToDispatchLog(event: KeyboardEvent) {
+    if (event.key === 'D' && event.ctrlKey && event.altKey && event.shiftKey) {
+      this.router.navigate(['/log']);
+    }
+  }
 }

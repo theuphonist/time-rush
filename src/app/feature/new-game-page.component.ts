@@ -40,29 +40,35 @@ import { ToFormGroup } from '../util/utility-types';
   ],
   template: `
     <time-rush-header text="New Game" alwaysSmall routeToPreviousPage="/home" />
-    <form [formGroup]="newGameForm" (ngSubmit)="onStartGameButtonClick()">
-      <div class="mt-page-content">
-        <label>
-          <span class="text-600 text-lg font-semibold">Game Name</span>
+    <main class="mt-page-content">
+      <form
+        [formGroup]="newGameForm"
+        (ngSubmit)="onStartGameButtonClick()"
+        class="flex flex-column gap-5"
+      >
+        <div class="flex flex-column gap-2">
+          <label for="game-name-input">
+            <span class="text-600 text-lg font-semibold">Game Name</span>
+          </label>
           <input
-            class="w-full mt-2 mb-1"
+            class="w-full"
             type="text"
             pInputText
             placeholder="Game name"
             formControlName="name"
             (ngModelChange)="onInputChange()"
+            id="game-name-input"
             aria-description="What should this game be called?"
           />
-        </label>
-      </div>
+        </div>
 
-      <!-- Turn length input -->
-      <div class="mt-5">
-        <label>
-          <span class="text-600 text-lg font-semibold">Turn Length</span>
-          <div class="flex mt-2 mb-1">
+        <!-- Turn length input -->
+        <div class="flex flex-column gap-2">
+          <label for="turn-length-input">
+            <span class="text-600 text-lg font-semibold">Turn Length</span>
+          </label>
+          <div class="flex gap-3">
             <p-inputNumber
-              class="mr-3"
               inputStyleClass="w-8rem"
               [showButtons]="true"
               buttonLayout="horizontal"
@@ -72,44 +78,46 @@ import { ToFormGroup } from '../util/utility-types';
               placeholder="Turn length"
               formControlName="turnLength"
               (ngModelChange)="onInputChange()"
+              inputId="turn-length-input"
             />
             <p-dropdown
               [options]="timeUnits"
               (ngModelChange)="onInputChange()"
               formControlName="turnLengthUnits"
+              ariaLabel="Turn length units"
             />
           </div>
-        </label>
-      </div>
+        </div>
 
-      <!-- Game type -->
-      <div class="mt-5 w-full">
-        <label>
-          <span class="text-600 text-lg font-semibold">Game Type</span>
+        <!-- Game type -->
+        <div class="flex flex-column gap-2">
+          <label>
+            <span class="text-600 text-lg font-semibold">Game Type</span>
+          </label>
           <p-selectButton
-            styleClass="mt-2 w-full"
             [options]="gameTypeOptions"
             [unselectable]="true"
             size="small"
             formControlName="gameType"
           />
-        </label>
-      </div>
-
-      <p-button
-        class="w-full"
-        styleClass="w-full mt-6"
-        type="submit"
-        [disabled]="!newGameForm.valid"
-      >
-        <div
-          class="w-full font-semibold flex justify-content-center align-items-center gap-2"
-        >
-          <span>{{ submitButtonLabel() }}</span>
-          <i class="pi pi-arrow-right"></i>
         </div>
-      </p-button>
-    </form>
+
+        <p-button
+          class="w-full"
+          styleClass="w-full"
+          type="submit"
+          [disabled]="!newGameForm.valid"
+          [ariaLabel]="submitButtonLabel()"
+        >
+          <div
+            class="w-full font-semibold flex justify-content-center align-items-center gap-2"
+          >
+            <span>{{ submitButtonLabel() }}</span>
+            <i class="pi pi-arrow-right"></i>
+          </div>
+        </p-button>
+      </form>
+    </main>
   `,
   styles: `
     .cdk-drop-list-dragging .cdk-drag {
@@ -135,7 +143,7 @@ export class NewGamePageComponent {
   });
 
   readonly gameTypeControlSignal = toSignal(
-    this.newGameForm.get('gameType')!.valueChanges
+    this.newGameForm.get('gameType')!.valueChanges,
   );
 
   private readonly inputTimer: WritableSignal<ReturnType<
@@ -143,7 +151,10 @@ export class NewGamePageComponent {
   > | null> = signal(null);
 
   readonly gameTypeOptions = [
-    { label: "Pass 'n' Play", value: GameTypes.Local },
+    {
+      label: "Pass 'n' Play",
+      value: GameTypes.Local,
+    },
     { label: 'Online', value: GameTypes.Online },
   ];
 
@@ -152,12 +163,12 @@ export class NewGamePageComponent {
   readonly submitButtonLabel = computed(() =>
     this.gameTypeControlSignal() === GameTypes.Local
       ? 'Add players'
-      : 'Game lobby'
+      : 'Game lobby',
   );
 
   ngOnInit(): void {
     const lastNewGameForm = this.sessionStorageService.getItem(
-      SessionStorageKeys.NewGameForm
+      SessionStorageKeys.NewGameForm,
     ) as Partial<GameForm>;
 
     if (lastNewGameForm) {
@@ -177,7 +188,7 @@ export class NewGamePageComponent {
   onSaveQueueTimerExpired(): void {
     this.sessionStorageService.setItem(
       SessionStorageKeys.NewGameForm,
-      this.newGameForm.value
+      this.newGameForm.value,
     );
   }
 
@@ -196,7 +207,7 @@ export class NewGamePageComponent {
 
     this.sessionStorageService.setItem(
       SessionStorageKeys.NewGameForm,
-      gameForm
+      gameForm,
     );
 
     this.state.dispatch(this.state.actions.createGameButtonClicked, {

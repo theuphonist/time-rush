@@ -1,4 +1,3 @@
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { Game, GameForm } from './game-types';
 import { Player, PlayerForm } from './player-types';
 
@@ -8,40 +7,62 @@ export interface TimeRushActions {
   // initialization
   appInitialized: ActionFunction<void>;
   emptyPlayerIdRetrievedFromStorage: ActionFunction<void>;
-  localPlayerIdRetrievedFromStorage: ActionFunction<void>;
+  localPlayerIdRetrievedFromStorage: ActionFunction<{
+    playerId: Player['id'];
+  }>;
   onlinePlayerIdRetrievedFromStorage: ActionFunction<{
     playerId: Player['id'];
   }>;
-  loadPlayerFailed: ActionFunction<void>;
-  loadGameFailed: ActionFunction<void>;
-  loadedUnjoinableGame: ActionFunction<{ game: Game }>;
-  loadOnlinePlayersFailed: ActionFunction<{ game: Game }>;
+  initializeAppFailed: ActionFunction<{
+    errorDetail: string;
+  }>;
 
   // web sockets
-  connectToWebSocketServerFailed: ActionFunction<{ errorSummary: string }>;
-  subscribeToGameTopicFailed: ActionFunction<{ errorSummary: string }>;
   wsPlayersOrGameUpdated: ActionFunction<void>;
   wsGameStarted: ActionFunction<void>;
 
   // game
   createGameButtonClicked: ActionFunction<{ gameForm: GameForm }>;
-  createGameFailed: ActionFunction<void>;
-  createPlayerDuringGameCreationFailed: ActionFunction<void>;
+  createGameFailed: ActionFunction<{
+    errorDetail: string;
+  }>;
   startGameButtonClicked: ActionFunction<void>;
   leaveGameConfirmed: ActionFunction<void>;
   joinGameButtonClicked: ActionFunction<{ joinCode: Game['joinCode'] }>;
-  findJoinCodeFailed: ActionFunction<{ joinCode: Game['joinCode'] }>;
+  joinGameFailed: ActionFunction<{
+    errorDetail: string;
+  }>;
 
   //players
   createPlayerButtonClicked: ActionFunction<{
     playerForm: PlayerForm;
   }>;
-  createOnlinePlayerFailed: ActionFunction<void>;
-  playersReordered: ActionFunction<CdkDragDrop<string[]>>;
+  createPlayerFailed: ActionFunction<{
+    errorDetail: string;
+  }>;
+  playersReordered: ActionFunction<{ playerIds: Player['id'][] }>;
+  reorderPlayersFailed: ActionFunction<{
+    errorDetail: string;
+  }>;
+  updatePlayerButtonClicked: ActionFunction<{
+    playerId: Player['id'];
+    playerForm: PlayerForm;
+  }>;
+  updatePlayerFailed: ActionFunction<{
+    errorDetail: string;
+  }>;
 }
 
 export interface TimeRushState {
   playerId?: Player['id'];
   players?: Player[];
   game?: Game;
+}
+
+export interface DispatchLogEntry {
+  id: string;
+  dispatchTimestamp: Date;
+  resolveTimestamp: Date;
+  actionName: string;
+  stateSnapshot: TimeRushState;
 }

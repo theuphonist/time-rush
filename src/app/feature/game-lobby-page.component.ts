@@ -1,10 +1,11 @@
-import { CdkDragDrop } from '@angular/cdk/drag-drop';
-import { Component, inject } from '@angular/core';
+import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
+import { Component, computed, inject } from '@angular/core';
 import { Confirmation } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerListComponent } from '../ui/player-list.component';
+import { Player } from '../util/player-types';
 
 @Component({
   selector: 'time-rush-game-lobby-page',
@@ -17,44 +18,54 @@ import { PlayerListComponent } from '../ui/player-list.component';
       backButtonIcon="pi-sign-out"
       [navigationConfirmation]="navigationConfirmation"
     />
-    @if (game() && connectedAndSortedPlayers()?.length) { @if (game(); as game)
-    {
-    <div class="mt-page-content flex gap-6">
-      <div class="flex flex-column">
-        <h2 class="text-600 text-lg font-semibold mt-0 mb-1">Join Code</h2>
-        <p class="text-3xl font-bold m-0">{{ game.joinCode }}</p>
-      </div>
-      <div class="flex flex-column">
-        <h2 class="text-600 text-lg font-semibold mt-0 mb-1">Turn Length</h2>
-        <p class="text-3xl font-bold m-0">
-          {{ game.turnLength }} {{ game.turnLengthUnits }}
+    <main class="mt-page-content">
+      @if (game() && connectedAndSortedPlayers().length) {
+        @if (game(); as game) {
+          <div class="flex gap-6">
+            <div class="flex flex-column">
+              <h2 class="text-600 text-lg font-semibold mt-0 mb-1">
+                Join Code
+              </h2>
+              <p class="text-3xl font-bold m-0">{{ game.joinCode }}</p>
+            </div>
+            <div class="flex flex-column">
+              <h2 class="text-600 text-lg font-semibold mt-0 mb-1">
+                Turn Length
+              </h2>
+              <p class="text-3xl font-bold m-0">
+                {{ game.turnLength }} {{ game.turnLengthUnits }}
+              </p>
+            </div>
+          </div>
+        }
+        @if (connectedAndSortedPlayers(); as players) {
+          @if (player(); as player) {
+            <time-rush-player-list
+              class="block mt-3"
+              [players]="players"
+              [editablePlayerIds]="editablePlayerIds()"
+              [hostPlayerId]="hostPlayerId()"
+              [reorderable]="playerIsHost()"
+              (playerOrderChange)="onPlayerOrderChange($event)"
+            />
+          }
+          @if (playerIsHost()) {
+            <p-button
+              class="w-full"
+              styleClass="w-full mt-6"
+              label="Let's go!"
+              [disabled]="players.length < 2"
+              (click)="onStartGameButtonClick()"
+            />
+          }
+        }
+      } @else {
+        <p class="font-italic">
+          Oops! Something went wrong... Return to the home page and create a new
+          game to get started.
         </p>
-      </div>
-    </div>
-    } @if (connectedAndSortedPlayers(); as players) { @if (player(); as player)
-    {
-    <time-rush-player-list
-      class="block mt-3"
-      [players]="players"
-      [player]="player"
-      [isLocalGame]="false"
-      [hostPlayerId]="hostPlayerId()"
-      (playerOrderChange)="onPlayerOrderChange($event)"
-    />
-    } @if (playerIsHost()) {
-    <p-button
-      class="w-full"
-      styleClass="w-full mt-6"
-      label="Let's go!"
-      [disabled]="players.length < 2"
-      (click)="onStartGameButtonClick()"
-    />
-    } } } @else {
-    <p class="font-italic mt-page-content">
-      Oops! Something went wrong... Return to the home page and create a new
-      game to get started.
-    </p>
-    }
+      }
+    </main>
   `,
 })
 export class GameLobbyPageComponent {
@@ -64,8 +75,14 @@ export class GameLobbyPageComponent {
   readonly connectedAndSortedPlayers =
     this.state.selectConnectedAndSortedPlayers;
   readonly player = this.state.selectPlayer;
+  readonly playerId = this.state.selectPlayerId;
   readonly hostPlayerId = this.state.selectHostPlayerId;
   readonly playerIsHost = this.state.selectPlayerIsHost;
+  readonly allPlayerIds = this.state.selectPlayerIds;
+
+  readonly editablePlayerIds = computed((): Player['id'][] =>
+    this.playerIsHost() ? this.allPlayerIds() : [this.playerId() ?? '_'],
+  );
 
   readonly navigationConfirmation: Confirmation = {
     message:
@@ -85,6 +102,12 @@ export class GameLobbyPageComponent {
   }
 
   onPlayerOrderChange(event: CdkDragDrop<string[]>): void {
-    this.state.dispatch(this.state.actions.playersReordered, event);
+    const playerIds = this.connectedAndSortedPlayers().map(
+      (player) => player.id,
+    );
+
+    moveItemInArray(playerIds, event.previousIndex, event.currentIndex);
+
+    this.state.dispatch(this.state.actions.playersReordered, { playerIds });
   }
 }

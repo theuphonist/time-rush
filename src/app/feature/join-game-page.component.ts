@@ -17,9 +17,8 @@ import { JOIN_CODE_REGEX } from '../util/constants';
       alwaysSmall
       routeToPreviousPage="/home"
     />
-
-    <!-- Join code input -->
-    <div class="mt-page-content">
+    <main class="mt-page-content">
+      <!-- Join code input -->
       <label for="join-code">
         <span class="text-600 text-lg font-semibold">Enter a join code:</span>
       </label>
@@ -40,7 +39,7 @@ import { JOIN_CODE_REGEX } from '../util/constants';
           (onClick)="onJoinGameButtonClick()"
         ></p-button>
       </div>
-    </div>
+    </main>
   `,
 })
 export class JoinGamePageComponent {
@@ -50,7 +49,7 @@ export class JoinGamePageComponent {
   readonly joinCode = signal('');
 
   readonly joinGameButtonDisabled = computed(
-    () => !JOIN_CODE_REGEX.test(this.joinCode())
+    () => !JOIN_CODE_REGEX.test(this.joinCode()),
   );
 
   onJoinGameButtonClick() {

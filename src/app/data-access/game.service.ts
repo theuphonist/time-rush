@@ -11,7 +11,6 @@ import {
   LOCAL_CREATED_AT,
   LOCAL_GAME_ID,
   LOCAL_JOIN_CODE,
-  LOCAL_PLAYER_ID,
 } from '../util/constants';
 import { Game, GameForm, GameStatuses, TimeUnits } from '../util/game-types';
 import { ApiService } from './api.service';
@@ -57,7 +56,7 @@ export class GameService {
       id: LOCAL_GAME_ID,
       joinCode: LOCAL_JOIN_CODE,
       status: GameStatuses.Local,
-      hostPlayerId: LOCAL_PLAYER_ID,
+      hostPlayerId: null,
       createdAt: LOCAL_CREATED_AT,
     };
   }

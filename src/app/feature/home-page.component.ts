@@ -8,7 +8,7 @@ import { HeaderComponent } from '../ui/header.component';
   imports: [HeaderComponent, RouterLink],
   template: `
     <time-rush-header text="Time Rush" />
-    <div class="mt-page-content flex flex-column align-items-center gap-2">
+    <main class="mt-page-content flex flex-column align-items-center gap-2">
       <a
         class="w-full p-button font-bold flex justify-content-center gap-2 no-underline"
         routerLink="/join-game"
@@ -24,7 +24,7 @@ import { HeaderComponent } from '../ui/header.component';
         <i class="pi pi-plus"></i>
         <span>Create a new game</span>
       </a>
-    </div>
+    </main>
   `,
 })
 export class HomePageComponent {}

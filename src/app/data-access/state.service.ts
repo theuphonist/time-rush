@@ -15,15 +15,21 @@ import { ulid } from 'ulid';
 import {
   LOCAL_CREATED_AT,
   LOCAL_GAME_ID,
-  LOCAL_PLAYER_ID,
+  LOCAL_PLAYER_PREFIX,
   LOCAL_SESSION_ID,
+  MAX_DISPATCH_LOG_ENTRIES,
 } from '../util/constants';
 import { Game, GameTypes } from '../util/game-types';
-import { getRandomPlayerColor, isJoinable } from '../util/helpers';
+import {
+  getRandomPlayerColor,
+  isJoinable,
+  isLocalPlayerId,
+} from '../util/helpers';
 import { Player } from '../util/player-types';
 import { SessionStorageKeys } from '../util/session-storage-types';
 import {
   ActionFunction,
+  DispatchLogEntry,
   TimeRushActions,
   TimeRushState,
 } from '../util/state-types';
@@ -65,23 +71,27 @@ export class StateService {
 
   // Selectors
   readonly selectGame: Signal<TimeRushState['game']> = computed(
-    () => this.state().game
+    () => this.state().game,
   );
 
   readonly selectPlayers: Signal<TimeRushState['players']> = computed(
-    () => this.state().players
+    () => this.state().players,
   );
 
   readonly selectPlayerId: Signal<TimeRushState['playerId']> = computed(
-    () => this.state().playerId
+    () => this.state().playerId,
   );
 
   readonly selectPlayer: Signal<Player | undefined> = computed(() =>
-    this.state().players?.find((player) => player.id === this.selectPlayerId())
+    this.state().players?.find((player) => player.id === this.selectPlayerId()),
   );
 
   readonly selectHostPlayerId: Signal<Player['id'] | undefined> = computed(
-    () => this.state().game?.hostPlayerId ?? undefined
+    () => this.state().game?.hostPlayerId ?? undefined,
+  );
+
+  readonly selectPlayerIds: Signal<Player['id'][]> = computed(
+    () => this.state().players?.map((player) => player.id) ?? [],
   );
 
   readonly selectPlayerIsHost: Signal<boolean> = computed(
@@ -89,18 +99,18 @@ export class StateService {
       !!(
         this.state().playerId &&
         this.state().playerId === this.state().game?.hostPlayerId
-      )
+      ),
   );
 
   readonly selectIsLocalGame: Signal<boolean> = computed(
-    () => this.state().game?.id === LOCAL_GAME_ID
+    () => this.state().game?.id === LOCAL_GAME_ID,
   );
 
   readonly selectConnectedAndSortedPlayers: Signal<Player[]> = computed(
     () =>
       this.state()
         .players?.filter((player) => player.sessionId)
-        ?.sort((player1, player2) => player1.position - player2.position) ?? []
+        ?.sort((player1, player2) => player1.position - player2.position) ?? [],
   );
 
   // Actions
@@ -108,22 +118,21 @@ export class StateService {
     // initialization
     appInitialized: () => {
       const playerId = this.sessionStorageService.getItem(
-        SessionStorageKeys.PlayerId
+        SessionStorageKeys.PlayerId,
       ) as Player['id'] | null;
 
       if (!playerId) {
         this.dispatch(
           this.actions.emptyPlayerIdRetrievedFromStorage,
-          undefined
+          undefined,
         );
         return;
       }
 
-      if (playerId === LOCAL_PLAYER_ID) {
-        this.dispatch(
-          this.actions.localPlayerIdRetrievedFromStorage,
-          undefined
-        );
+      if (isLocalPlayerId(playerId)) {
+        this.dispatch(this.actions.localPlayerIdRetrievedFromStorage, {
+          playerId,
+        });
         return;
       }
 
@@ -134,22 +143,32 @@ export class StateService {
     emptyPlayerIdRetrievedFromStorage: () => {
       this.router.navigate(['/']);
     },
-    localPlayerIdRetrievedFromStorage: () => {
-      const players = (this.sessionStorageService.getItem(
-        SessionStorageKeys.Players
-      ) ?? []) as Player[];
+    localPlayerIdRetrievedFromStorage: ({ playerId }) => {
+      const players = this.sessionStorageService.getItem(
+        SessionStorageKeys.Players,
+      ) as Player[] | undefined;
+
+      if (!players) {
+        this.dispatch(this.actions.initializeAppFailed, {
+          errorDetail: 'Failed to load recent player data.',
+        });
+        return;
+      }
 
       const game = this.sessionStorageService.getItem(
-        SessionStorageKeys.Game
+        SessionStorageKeys.Game,
       ) as Game | undefined;
 
       if (!game) {
-        this.dispatch(this.actions.loadGameFailed, undefined);
+        this.dispatch(this.actions.initializeAppFailed, {
+          errorDetail: 'Failed to load recent game data.',
+        });
+        return;
       }
 
       this.state.update((prev) => ({
         ...prev,
-        playerId: LOCAL_PLAYER_ID,
+        playerId,
         players,
         game,
       }));
@@ -159,38 +178,46 @@ export class StateService {
       const player = await firstValueFrom(
         this.playerService
           .getOnlinePlayerById(playerId)
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!player?.gameId) {
-        this.dispatch(this.actions.loadPlayerFailed, undefined);
+        this.dispatch(this.actions.initializeAppFailed, {
+          errorDetail: 'Failed to load recent player data.',
+        });
         return;
       }
 
       const game = await firstValueFrom(
         this.gameService
           .getGameById(player.gameId)
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!game?.id) {
-        this.dispatch(this.actions.loadGameFailed, undefined);
+        this.dispatch(this.actions.initializeAppFailed, {
+          errorDetail: 'Failed to load recent game data.',
+        });
         return;
       }
 
       if (!isJoinable(game)) {
-        this.dispatch(this.actions.loadedUnjoinableGame, { game });
+        this.dispatch(this.actions.initializeAppFailed, {
+          errorDetail: `Game "${game.name}" is no longer joinable.`,
+        });
         return;
       }
 
       const players = await firstValueFrom(
         this.playerService
           .getOnlinePlayersByGameId(game.id)
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!players) {
-        this.dispatch(this.actions.loadOnlinePlayersFailed, { game });
+        this.dispatch(this.actions.initializeAppFailed, {
+          errorDetail: `Failed to load players for game "${game.name}".`,
+        });
         return;
       }
 
@@ -199,8 +226,8 @@ export class StateService {
         await this.webSocketService.connect(player.id, game.id);
 
       if (!webSocketConnectionEstablished) {
-        this.dispatch(this.actions.connectToWebSocketServerFailed, {
-          errorSummary: 'Unable to join game',
+        this.dispatch(this.actions.initializeAppFailed, {
+          errorDetail: 'Failed to connect to WebSocket server.',
         });
         return;
       }
@@ -214,56 +241,16 @@ export class StateService {
 
       this.router.navigate(['/lobby']);
     },
-    loadPlayerFailed: () => {
-      this.router.navigate(['/']);
+    initializeAppFailed: ({ errorDetail }) => {
       this.messageService.add({
         severity: 'error',
-        summary: 'Unable to join game',
-        detail: 'Failed to load recent player data.',
+        summary: 'Initializion Error',
+        detail: errorDetail,
       });
-    },
-    loadGameFailed: () => {
       this.router.navigate(['/']);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Unable to join game',
-        detail: 'Failed to load recent game data.',
-      });
-    },
-    loadedUnjoinableGame: ({ game }) => {
-      this.router.navigate(['/']);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Unable to join game',
-        detail: `Game "${game.name}" is no longer joinable.`,
-      });
-    },
-    loadOnlinePlayersFailed: ({ game }) => {
-      this.router.navigate(['/']);
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Unable to join game',
-        detail: `Failed to load players for game "${game.name}".`,
-      });
     },
 
     // web sockets
-    connectToWebSocketServerFailed: ({ errorSummary }) => {
-      this.router.navigate(['/']);
-      this.messageService.add({
-        severity: 'error',
-        summary: errorSummary,
-        detail: 'Failed to connect to WebSocket server.',
-      });
-    },
-    subscribeToGameTopicFailed: ({ errorSummary }) => {
-      this.router.navigate(['/']);
-      this.messageService.add({
-        severity: 'error',
-        summary: errorSummary,
-        detail: 'Failed to subscribe to WebSocket messages.',
-      });
-    },
     wsPlayersOrGameUpdated: async () => {
       const gameId = this.state().game?.id;
 
@@ -274,13 +261,13 @@ export class StateService {
       const game = await firstValueFrom(
         this.gameService
           .getGameById(gameId)
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       const players = await firstValueFrom(
         this.playerService
           .getOnlinePlayersByGameId(gameId)
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!game || !players) {
@@ -300,12 +287,15 @@ export class StateService {
     createGameButtonClicked: async ({ gameForm }) => {
       this.sessionStorageService.setItem(
         SessionStorageKeys.NewGameForm,
-        gameForm
+        gameForm,
       );
 
       // create game
       if (gameForm.gameType === GameTypes.Local) {
-        this.gameService.createLocalGame(gameForm);
+        this.state.update((prev) => ({
+          ...prev,
+          game: this.gameService.createLocalGame(gameForm),
+        }));
         this.router.navigate(['/manage-players']);
         return;
       }
@@ -313,11 +303,13 @@ export class StateService {
       const createdGame = await firstValueFrom(
         this.gameService
           .createOnlineGame(gameForm)
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!createdGame) {
-        this.dispatch(this.actions.createGameFailed, undefined);
+        this.dispatch(this.actions.createGameFailed, {
+          errorDetail: 'Server failed to respond.',
+        });
         return;
       }
 
@@ -329,14 +321,13 @@ export class StateService {
             color: getRandomPlayerColor(),
             gameId: createdGame.id,
           })
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!hostPlayer) {
-        this.dispatch(
-          this.actions.createPlayerDuringGameCreationFailed,
-          undefined
-        );
+        this.dispatch(this.actions.createGameFailed, {
+          errorDetail: 'Failed to create a host player for new game.',
+        });
         return;
       }
 
@@ -345,8 +336,8 @@ export class StateService {
         await this.webSocketService.connect(hostPlayer.id, createdGame.id);
 
       if (!webSocketConnectionEstablished) {
-        this.dispatch(this.actions.connectToWebSocketServerFailed, {
-          errorSummary: 'Unable to create game',
+        this.dispatch(this.actions.createGameFailed, {
+          errorDetail: 'Failed to connect to WebSocket server.',
         });
         return;
       }
@@ -360,19 +351,11 @@ export class StateService {
 
       this.router.navigate(['/lobby']);
     },
-    createGameFailed: () => {
+    createGameFailed: ({ errorDetail }) => {
       this.messageService.add({
         severity: 'error',
-        summary: 'Failed to create game',
-        detail: 'An unknown error occurred.  Please try again.',
-      });
-    },
-    createPlayerDuringGameCreationFailed: () => {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Failed to create game',
-        detail:
-          'Unable to create new player during game creation.  Please try again.',
+        summary: 'Create Game Error',
+        detail: errorDetail,
       });
     },
     // TODO: handle this action
@@ -411,12 +394,12 @@ export class StateService {
       const games = await firstValueFrom(
         this.gameService
           .getGamesByJoinCode(upperCaseJoinCode)
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!games?.length) {
-        this.dispatch(this.actions.findJoinCodeFailed, {
-          joinCode: upperCaseJoinCode,
+        this.dispatch(this.actions.joinGameFailed, {
+          errorDetail: `Could not find game with join code ${joinCode}.`,
         });
         return;
       }
@@ -424,18 +407,22 @@ export class StateService {
       const game = games[0];
 
       if (!isJoinable(game)) {
-        this.dispatch(this.actions.loadedUnjoinableGame, { game });
+        this.dispatch(this.actions.joinGameFailed, {
+          errorDetail: `Game "${game.name}" is no longer joinable.`,
+        });
         return;
       }
 
       const players = await firstValueFrom(
         this.playerService
           .getOnlinePlayersByGameId(game.id)
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!players) {
-        this.dispatch(this.actions.loadOnlinePlayersFailed, { game });
+        this.dispatch(this.actions.joinGameFailed, {
+          errorDetail: `Failed to load players for game "${game.name}".`,
+        });
         return;
       }
 
@@ -447,11 +434,11 @@ export class StateService {
 
       this.router.navigate(['/new-player']);
     },
-    findJoinCodeFailed: ({ joinCode }) =>
+    joinGameFailed: ({ errorDetail }) =>
       this.messageService.add({
         severity: 'error',
-        summary: 'Unable to join game',
-        detail: `Could not find game with join code ${joinCode}.`,
+        summary: 'Join Game Error',
+        detail: errorDetail,
       }),
 
     // player
@@ -459,26 +446,23 @@ export class StateService {
       const game = this.state().game;
 
       if (!game) {
-        this.dispatch(this.actions.loadGameFailed, undefined);
+        this.dispatch(this.actions.createPlayerFailed, {
+          errorDetail: 'Failed to load game data.',
+        });
         return;
       }
 
-      if (!isJoinable(game)) {
-        this.dispatch(this.actions.loadedUnjoinableGame, { game });
-        return;
-      }
-
-      if (this.state().game?.id === LOCAL_GAME_ID) {
+      if (this.selectIsLocalGame()) {
         this.state.update((prev) => ({
           ...prev,
           players: [
             ...(prev.players ?? []),
             {
               ...playerForm,
-              id: ulid(),
+              id: `${LOCAL_PLAYER_PREFIX}${ulid()}`,
               position:
                 Math.max(
-                  ...(prev.players?.map((player) => player.position) ?? [-1])
+                  ...(prev.players?.map((player) => player.position) ?? [-1]),
                 ) + 1,
               gameId: LOCAL_GAME_ID,
               sessionId: LOCAL_SESSION_ID,
@@ -491,17 +475,26 @@ export class StateService {
         return;
       }
 
+      if (!isJoinable(game)) {
+        this.dispatch(this.actions.createPlayerFailed, {
+          errorDetail: `Game "${game.name}" is no longer joinable.`,
+        });
+        return;
+      }
+
       const createdPlayer = await firstValueFrom(
         this.playerService
           .createOnlinePlayer({
             ...playerForm,
             gameId: game.id,
           })
-          .pipe(catchError(() => of(undefined)))
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!createdPlayer) {
-        this.dispatch(this.actions.createOnlinePlayerFailed, undefined);
+        this.dispatch(this.actions.createPlayerFailed, {
+          errorDetail: 'Server failed to respond.',
+        });
         return;
       }
 
@@ -510,8 +503,8 @@ export class StateService {
         await this.webSocketService.connect(createdPlayer.id, game.id);
 
       if (!webSocketConnectionEstablished) {
-        this.dispatch(this.actions.connectToWebSocketServerFailed, {
-          errorSummary: 'Unable to join game',
+        this.dispatch(this.actions.createPlayerFailed, {
+          errorDetail: 'Failed to connect to WebSocket server.',
         });
         return;
       }
@@ -524,38 +517,167 @@ export class StateService {
 
       this.router.navigate(['/lobby']);
     },
-    createOnlinePlayerFailed: () => {
+    createPlayerFailed: ({ errorDetail }) => {
       this.messageService.add({
         severity: 'error',
-        summary: 'Failed to create game',
-        detail: 'An unknown error occurred.  Please try again.',
+        summary: 'Create Player Error',
+        detail: errorDetail,
       });
     },
-    // TODO: handle this action
-    playersReordered: (event) => {},
+    playersReordered: async ({ playerIds }) => {
+      if (this.selectIsLocalGame()) {
+        this.state.update((prev) => ({
+          ...prev,
+          players:
+            prev.players?.map((player) => ({
+              ...player,
+              position: playerIds.findIndex(
+                (playerId) => playerId === player.id,
+              ),
+            })) ?? [],
+        }));
+        return;
+      }
+
+      const gameId = this.selectGame()?.id;
+
+      if (!gameId) {
+        this.dispatch(this.actions.reorderPlayersFailed, {
+          errorDetail: 'Failed to load game data.',
+        });
+        return;
+      }
+
+      const updatedPlayers = await firstValueFrom(
+        this.playerService.reorderOnlinePlayers(gameId, playerIds),
+      );
+
+      if (!updatedPlayers) {
+        this.dispatch(this.actions.reorderPlayersFailed, {
+          errorDetail: 'Server failed to respond.',
+        });
+        return;
+      }
+
+      this.state.update((prev) => ({
+        ...prev,
+        players: updatedPlayers,
+      }));
+    },
+    reorderPlayersFailed: ({ errorDetail }) =>
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Reorder Players Error',
+        detail: errorDetail,
+      }),
+    updatePlayerButtonClicked: async ({ playerId, playerForm }) => {
+      if (isLocalPlayerId(playerId)) {
+        this.state.update((prev) => ({
+          ...prev,
+          players: prev.players?.map((player) =>
+            player.id === playerId
+              ? {
+                  ...player,
+                  ...playerForm,
+                }
+              : player,
+          ),
+        }));
+
+        this.router.navigate(['/manage-players']);
+        return;
+      }
+
+      const updatedPlayer = await firstValueFrom(
+        this.playerService
+          .updateOnlinePlayer(playerId, playerForm)
+          .pipe(catchError(() => of(undefined))),
+      );
+
+      if (!updatedPlayer) {
+        this.dispatch(this.actions.updatePlayerFailed, {
+          errorDetail: 'Server failed to respond.',
+        });
+        return;
+      }
+
+      this.state.update((prev) => ({
+        ...prev,
+        players: prev.players?.map((player) =>
+          player.id === playerId ? { ...updatedPlayer } : player,
+        ),
+      }));
+
+      this.router.navigate(['/lobby']);
+    },
+    updatePlayerFailed: ({ errorDetail }) => {
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Update Player Error',
+        detail: errorDetail,
+      });
+    },
   };
 
   // Signal Effects
   private readonly updateSessionStorageOnPlayerIdUpdates = effect(() =>
     this.sessionStorageService.setItem(
       SessionStorageKeys.PlayerId,
-      this.selectPlayerId() ?? null
-    )
+      this.selectPlayerId() ?? null,
+    ),
   );
 
   private readonly updateSessionStorageOnLocalPlayerUpdates = effect(() => {
-    if (this.state().game?.id === LOCAL_GAME_ID) {
+    if (this.selectIsLocalGame()) {
       this.sessionStorageService.setItem(
         SessionStorageKeys.Players,
-        this.selectPlayers() ?? null
+        this.selectPlayers() ?? null,
+      );
+    }
+  });
+
+  private readonly updateSessionStorageOnLocalGameUpdates = effect(() => {
+    if (this.selectIsLocalGame() || !this.selectGame()) {
+      this.sessionStorageService.setItem(
+        SessionStorageKeys.Game,
+        this.selectGame() ?? null,
       );
     }
   });
 
   dispatch<T>(action: ActionFunction<T>, args: T) {
-    console.log(`[${new Date().toLocaleString()}] Dispatched ${action.name}`);
-    action(args);
+    const timestamp = new Date();
+    const promiseOrVoid = action(args);
 
-    console.log(this.state());
+    if (promiseOrVoid) {
+      promiseOrVoid.then(() =>
+        this.addEntryToDispatchLog({
+          id: ulid(),
+          dispatchTimestamp: timestamp,
+          resolveTimestamp: new Date(),
+          actionName: action.name,
+          stateSnapshot: this.state(),
+        }),
+      );
+      return;
+    }
+
+    this.addEntryToDispatchLog({
+      id: ulid(),
+      dispatchTimestamp: timestamp,
+      resolveTimestamp: new Date(),
+      actionName: action.name,
+      stateSnapshot: this.state(),
+    });
   }
+
+  private addEntryToDispatchLog(entry: DispatchLogEntry) {
+    const numberOfEntries = this.dispatchLog().unshift(entry);
+
+    if (numberOfEntries > MAX_DISPATCH_LOG_ENTRIES) {
+      this.dispatchLog().pop();
+    }
+  }
+
+  readonly dispatchLog: WritableSignal<DispatchLogEntry[]> = signal([]);
 }

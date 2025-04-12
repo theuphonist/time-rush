@@ -1,5 +1,6 @@
-import { DEFAULT_PLAYER_COLORS } from './constants';
+import { DEFAULT_PLAYER_COLORS, LOCAL_PLAYER_PREFIX } from './constants';
 import { Game, GameStatuses } from './game-types';
+import { Player } from './player-types';
 
 export function getRandomPlayerColor(): (typeof DEFAULT_PLAYER_COLORS)[number] {
   const randomIndex = Math.floor(Math.random() * DEFAULT_PLAYER_COLORS.length);
@@ -19,4 +20,8 @@ export function getContrastingColorClass(colorHex: string) {
 
 export function isJoinable(game: Game) {
   return game.status === GameStatuses.Pending;
+}
+
+export function isLocalPlayerId(playerId: Player['id']) {
+  return playerId.startsWith(LOCAL_PLAYER_PREFIX);
 }

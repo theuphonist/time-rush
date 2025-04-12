@@ -14,6 +14,9 @@ export const MAX_SUBSCRIBE_RETRIES = 5;
 export const MAX_SEND_RETRIES = 5;
 export const CONNECTION_TIMEOUT = 2500;
 
+// State
+export const MAX_DISPATCH_LOG_ENTRIES = 100;
+
 // Misc
 export const DEFAULT_PLAYER_COLORS: `#${string}`[] = [
   '#F34141',
@@ -33,7 +36,7 @@ export const JOIN_CODE_REGEX = /^[a-zA-Z0-9]{4}$/;
 
 // Local Placeholders
 export const LOCAL_GAME_ID = '__localgame__';
-export const LOCAL_PLAYER_ID = '__localplayer__';
 export const LOCAL_JOIN_CODE = '__localjoincode__';
 export const LOCAL_CREATED_AT = new Date();
 export const LOCAL_SESSION_ID = '__localsessionid__';
+export const LOCAL_PLAYER_PREFIX = 'local-';

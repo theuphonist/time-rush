@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { ActiveGamePageComponent } from './feature/active-game-page.component';
+import { DispatchLogPageComponent } from './feature/dispatch-log-page.component';
 import { EditPlayerPageComponent } from './feature/edit-player-page.component';
 import { GameLobbyPageComponent } from './feature/game-lobby-page.component';
 import { HomePageComponent } from './feature/home-page.component';
@@ -23,5 +24,6 @@ export const routes: Routes = [
   { path: 'active-game', component: ActiveGamePageComponent },
   { path: 'lobby', component: GameLobbyPageComponent },
   { path: 'manage-players', component: ManageLocalPlayersPageComponent },
+  { path: 'log', component: DispatchLogPageComponent },
   { path: '**', redirectTo: 'home' },
 ];
