@@ -17,6 +17,7 @@ import { ButtonModule } from 'primeng/button';
 import { DropdownModule } from 'primeng/dropdown';
 import { InputNumberModule } from 'primeng/inputnumber';
 import { InputTextModule } from 'primeng/inputtext';
+import { ProgressSpinnerModule } from 'primeng/progressspinner';
 import { SelectButtonModule } from 'primeng/selectbutton';
 import { SessionStorageService } from '../data-access/session-storage.service';
 import { StateService } from '../data-access/state.service';
@@ -37,6 +38,7 @@ import { ToFormGroup } from '../util/utility-types';
     DropdownModule,
     ButtonModule,
     SelectButtonModule,
+    ProgressSpinnerModule,
   ],
   template: `
     <time-rush-header text="New Game" alwaysSmall routeToPreviousPage="/home" />
@@ -105,6 +107,7 @@ import { ToFormGroup } from '../util/utility-types';
         <p-button
           class="w-full"
           styleClass="w-full"
+          [style]="{ height: '2.25rem' }"
           type="submit"
           [disabled]="!newGameForm.valid"
           [ariaLabel]="submitButtonLabel()"
@@ -113,7 +116,11 @@ import { ToFormGroup } from '../util/utility-types';
             class="w-full font-semibold flex justify-content-center align-items-center gap-2"
           >
             <span>{{ submitButtonLabel() }}</span>
-            <i class="pi pi-arrow-right"></i>
+            @if (loading()) {
+              <p-progressSpinner styleClass="h-1rem w-1rem" strokeWidth="4" />
+            } @else {
+              <i class="pi pi-arrow-right h-1rem"></i>
+            }
           </div>
         </p-button>
       </form>
@@ -127,6 +134,12 @@ import { ToFormGroup } from '../util/utility-types';
     .cdk-drag-animating {
       transition: transform 300ms cubic-bezier(0, 0, 0.2, 1);
     }
+
+    :host ::ng-deep {
+      .p-progress-spinner-circle {
+        stroke: var(--surface-ground) !important;
+      }
+    }
   `,
 })
 export class NewGamePageComponent {
@@ -134,6 +147,8 @@ export class NewGamePageComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly sessionStorageService = inject(SessionStorageService);
   private readonly state = inject(StateService);
+
+  readonly loading = this.state.selectLoading;
 
   readonly newGameForm: ToFormGroup<GameForm> = this.formBuilder.group({
     name: ['', Validators.required],

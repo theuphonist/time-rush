@@ -39,7 +39,9 @@ import { PlayerService } from './player.service';
 import { SessionStorageService } from './session-storage.service';
 import { WebSocketService } from './web-socket.service';
 
-const initialState = {};
+const initialState = {
+  loading: true,
+};
 
 @Injectable({
   providedIn: 'root',
@@ -82,6 +84,10 @@ export class StateService {
     () => this.state().playerId,
   );
 
+  readonly selectLoading: Signal<TimeRushState['loading']> = computed(
+    () => this.state().loading,
+  );
+
   readonly selectPlayer: Signal<Player | undefined> = computed(() =>
     this.state().players?.find((player) => player.id === this.selectPlayerId()),
   );
@@ -122,10 +128,16 @@ export class StateService {
       ) as Player['id'] | null;
 
       if (!playerId) {
+        this.state.update((prev) => ({
+          ...prev,
+          loading: false,
+        }));
+
         this.dispatch(
           this.actions.emptyPlayerIdRetrievedFromStorage,
           undefined,
         );
+
         return;
       }
 
@@ -133,6 +145,7 @@ export class StateService {
         this.dispatch(this.actions.localPlayerIdRetrievedFromStorage, {
           playerId,
         });
+
         return;
       }
 
@@ -141,6 +154,11 @@ export class StateService {
       });
     },
     emptyPlayerIdRetrievedFromStorage: () => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
       this.router.navigate(['/']);
     },
     localPlayerIdRetrievedFromStorage: ({ playerId }) => {
@@ -171,6 +189,7 @@ export class StateService {
         playerId,
         players,
         game,
+        loading: false,
       }));
     },
     onlinePlayerIdRetrievedFromStorage: async ({ playerId }) => {
@@ -237,16 +256,23 @@ export class StateService {
         playerId,
         players,
         game,
+        loading: false,
       }));
 
       this.router.navigate(['/lobby']);
     },
     initializeAppFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
       this.messageService.add({
         severity: 'error',
         summary: 'Initializion Error',
         detail: errorDetail,
       });
+
       this.router.navigate(['/']);
     },
 
@@ -285,6 +311,11 @@ export class StateService {
 
     // game
     createGameButtonClicked: async ({ gameForm }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
       this.sessionStorageService.setItem(
         SessionStorageKeys.NewGameForm,
         gameForm,
@@ -347,11 +378,17 @@ export class StateService {
         game: createdGame,
         playerId: hostPlayer.id,
         players: [hostPlayer],
+        loading: false,
       }));
 
       this.router.navigate(['/lobby']);
     },
     createGameFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
       this.messageService.add({
         severity: 'error',
         summary: 'Create Game Error',
@@ -361,6 +398,11 @@ export class StateService {
     // TODO: handle this action
     startGameButtonClicked: () => {},
     leaveGameConfirmed: async () => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
       const playerId = this.state().playerId;
 
       if (!playerId) {
@@ -369,6 +411,7 @@ export class StateService {
           playerId: undefined,
           game: undefined,
           players: undefined,
+          loading: false,
         }));
 
         this.webSocketService.disconnect();
@@ -383,12 +426,18 @@ export class StateService {
         playerId: undefined,
         game: undefined,
         players: undefined,
+        loading: false,
       }));
 
       this.webSocketService.disconnect();
       this.router.navigate(['/']);
     },
     joinGameButtonClicked: async ({ joinCode }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
       const upperCaseJoinCode = joinCode.toUpperCase();
 
       const games = await firstValueFrom(
@@ -430,19 +479,31 @@ export class StateService {
         ...prev,
         players,
         game,
+        loading: false,
       }));
 
       this.router.navigate(['/new-player']);
     },
-    joinGameFailed: ({ errorDetail }) =>
+    joinGameFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
       this.messageService.add({
         severity: 'error',
         summary: 'Join Game Error',
         detail: errorDetail,
-      }),
+      });
+    },
 
     // player
     createPlayerButtonClicked: async ({ playerForm }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
       const game = this.state().game;
 
       if (!game) {
@@ -469,6 +530,7 @@ export class StateService {
               createdAt: LOCAL_CREATED_AT,
             },
           ],
+          loading: false,
         }));
 
         this.router.navigate(['/manage-players']);
@@ -513,11 +575,17 @@ export class StateService {
         ...prev,
         playerId: createdPlayer.id,
         players: [...(prev.players ?? []), createdPlayer],
+        loading: false,
       }));
 
       this.router.navigate(['/lobby']);
     },
     createPlayerFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
       this.messageService.add({
         severity: 'error',
         summary: 'Create Player Error',
@@ -525,6 +593,11 @@ export class StateService {
       });
     },
     playersReordered: async ({ playerIds }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
       const originalPlayers = this.state().players;
 
       // optimistically set the state, it will be reverted if an online save fails
@@ -538,6 +611,11 @@ export class StateService {
       }));
 
       if (this.selectIsLocalGame()) {
+        this.state.update((prev) => ({
+          ...prev,
+          loading: false,
+        }));
+
         return;
       }
 
@@ -568,6 +646,7 @@ export class StateService {
       this.state.update((prev) => ({
         ...prev,
         players: updatedPlayers,
+        loading: false,
       }));
     },
     reorderPlayersFailed: ({ errorDetail, originalPlayers }) => {
@@ -576,12 +655,19 @@ export class StateService {
         summary: 'Reorder Players Error',
         detail: errorDetail,
       });
+
       this.state.update((prev) => ({
         ...prev,
         players: originalPlayers,
+        loading: false,
       }));
     },
     updatePlayerButtonClicked: async ({ playerId, playerForm }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
       if (isLocalPlayerId(playerId)) {
         this.state.update((prev) => ({
           ...prev,
@@ -593,6 +679,7 @@ export class StateService {
                 }
               : player,
           ),
+          loading: false,
         }));
 
         this.router.navigate(['/manage-players']);
@@ -617,11 +704,17 @@ export class StateService {
         players: prev.players?.map((player) =>
           player.id === playerId ? { ...updatedPlayer } : player,
         ),
+        loading: false,
       }));
 
       this.router.navigate(['/lobby']);
     },
     updatePlayerFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
       this.messageService.add({
         severity: 'error',
         summary: 'Update Player Error',

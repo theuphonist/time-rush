@@ -58,6 +58,7 @@ export interface TimeRushState {
   playerId?: Player['id'];
   players?: Player[];
   game?: Game;
+  loading: boolean;
 }
 
 export interface DispatchLogEntry {
