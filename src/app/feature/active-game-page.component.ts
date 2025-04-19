@@ -6,7 +6,7 @@ import {
   WritableSignal,
 } from '@angular/core';
 import { Router } from '@angular/router';
-import { Confirmation } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { GameService } from '../data-access/game.service';
 import { PlayerService } from '../data-access/player.service';
@@ -23,31 +23,35 @@ import { LOCAL_GAME_ID } from '../util/constants';
       [text]="game().name"
       alwaysSmall
       backButtonIcon="pi-sign-out"
-      [navigationConfirmation]="navigationConfirmation"
+      (backButtonClick)="onBackButtonClick()"
     />
     @if (game(); as game) {
-    <div class="mt-page-content">
-      @if (players(); as players){ @for (player of players; track player.id) {
-      <div class="mb-2">
-        <time-rush-player-timer
-          [turnLength]="game.turnLength"
-          [timeUnits]="game.turnLengthUnits"
-          [isActive]="activePlayerId() === player.id"
-          [player]="player"
-        ></time-rush-player-timer>
+      <div class="mt-page-content">
+        @if (players(); as players) {
+          @for (player of players; track player.id) {
+            <div class="mb-2">
+              <time-rush-player-timer
+                [turnLength]="game.turnLength"
+                [timeUnits]="game.turnLengthUnits"
+                [isActive]="activePlayerId() === player.id"
+                [player]="player"
+              ></time-rush-player-timer>
+            </div>
+          }
+        }
       </div>
-      } }
-    </div>
 
-    @if (showEndTurnButton()) {
-    <p-button
-      styleClass="w-full h-8rem mt-6"
-      [label]="endTurnButtonText()"
-      (click)="changeActivePlayer()"
-    />} } @else {
-    <p class="mt-page-content font-italic">
-      Game not available. Return to home page to create a new game.
-    </p>
+      @if (showEndTurnButton()) {
+        <p-button
+          styleClass="w-full h-8rem mt-6"
+          [label]="endTurnButtonText()"
+          (click)="changeActivePlayer()"
+        />
+      }
+    } @else {
+      <p class="mt-page-content font-italic">
+        Game not available. Return to home page to create a new game.
+      </p>
     }
   `,
   styles: ``,
@@ -57,6 +61,7 @@ export class ActiveGamePageComponent {
   private readonly gameService = inject(GameService);
   private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
+  private readonly confirmationService = inject(ConfirmationService);
 
   readonly game = this.gameService.game;
   readonly players = this.playerService.players;
@@ -68,7 +73,7 @@ export class ActiveGamePageComponent {
     () =>
       this.gameService.isLocalGame() ||
       !this.activePlayerId() ||
-      this.player().id === this.activePlayerId()
+      this.player().id === this.activePlayerId(),
   );
 
   readonly endTurnButtonText = computed(() => {
@@ -86,22 +91,8 @@ export class ActiveGamePageComponent {
   });
 
   readonly timerStates: WritableSignal<boolean[]> = signal(
-    new Array((this.players() ?? []).length).fill(false)
+    new Array((this.players() ?? []).length).fill(false),
   );
-
-  readonly navigationConfirmation: Confirmation = {
-    message:
-      "Leave this game?  If you want to return, you'll need to join as a new player.",
-    header: 'Leave Game',
-    accept: () => {
-      this.playerService.leaveOnlineGame();
-      this.router.navigate(['/home']);
-    },
-    acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',
-    rejectButtonStyleClass: 'p-button-text w-4rem',
-    acceptIcon: 'none',
-    rejectIcon: 'none',
-  };
 
   changeActivePlayer() {
     if (this.game().id === LOCAL_GAME_ID) {
@@ -110,5 +101,21 @@ export class ActiveGamePageComponent {
     }
 
     this.playerService.changeActiveOnlinePlayer();
+  }
+
+  onBackButtonClick() {
+    this.confirmationService.confirm({
+      header: 'Leave Game',
+      message:
+        "Leave this game?  If you want to return, you'll need to join as a new player.",
+      accept: () => {
+        this.playerService.leaveOnlineGame();
+        this.router.navigate(['/home']);
+      },
+      acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',
+      rejectButtonStyleClass: 'p-button-text w-4rem',
+      acceptIcon: 'none',
+      rejectIcon: 'none',
+    });
   }
 }

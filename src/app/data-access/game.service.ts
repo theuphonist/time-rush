@@ -13,13 +13,16 @@ import {
   LOCAL_JOIN_CODE,
 } from '../util/constants';
 import { Game, GameForm, GameStatuses, TimeUnits } from '../util/game-types';
+import { SessionStorageKeys } from '../util/session-storage-types';
 import { ApiService } from './api.service';
+import { SessionStorageService } from './session-storage.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class GameService {
   private readonly apiService = inject(ApiService);
+  private readonly sessionStorageService = inject(SessionStorageService);
 
   readonly game: WritableSignal<Game> = signal({
     id: LOCAL_GAME_ID,
@@ -50,14 +53,18 @@ export class GameService {
   }
 
   // Local Game CRUD
-  createLocalGame(newGame: GameForm): Game {
-    return {
-      ...newGame,
+  createLocalGame(gameForm: GameForm): Game {
+    const newGame: Game = {
+      ...gameForm,
       id: LOCAL_GAME_ID,
       joinCode: LOCAL_JOIN_CODE,
       status: GameStatuses.Local,
       hostPlayerId: null,
       createdAt: LOCAL_CREATED_AT,
     };
+
+    this.sessionStorageService.setItem(SessionStorageKeys.Game, newGame);
+
+    return newGame;
   }
 }

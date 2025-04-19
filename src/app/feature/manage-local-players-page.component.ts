@@ -5,12 +5,13 @@ import {
 } from '@angular/cdk/drag-drop';
 import { Component, computed, inject } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
+import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { PlayerService } from '../data-access/player.service';
 import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerListComponent } from '../ui/player-list.component';
 import { GameTypes } from '../util/game-types';
+import { Player } from '../util/player-types';
 
 @Component({
   selector: 'time-rush-manage-local-players-page',
@@ -26,7 +27,7 @@ import { GameTypes } from '../util/game-types';
     <time-rush-header
       text="Manage Players"
       alwaysSmall
-      routeToPreviousPage="/new-game"
+      (backButtonClick)="onBackButtonClick()"
     />
 
     <!-- Players -->
@@ -35,8 +36,10 @@ import { GameTypes } from '../util/game-types';
         class="block mt-3"
         [players]="players()"
         [editablePlayerIds]="allPlayerIds()"
+        [deletablePlayerIds]="allPlayerIds()"
         [reorderable]="true"
         (playerOrderChange)="onPlayerOrderChange($event)"
+        (deletePlayerButtonClick)="onDeletePlayerButtonClick($event.player)"
       />
       <a
         routerLink="/new-player"
@@ -57,8 +60,8 @@ import { GameTypes } from '../util/game-types';
 })
 export class ManageLocalPlayersPageComponent {
   private readonly state = inject(StateService);
-  private readonly playerService = inject(PlayerService);
   private readonly router = inject(Router);
+  private readonly confirmationService = inject(ConfirmationService);
 
   readonly players = this.state.selectConnectedAndSortedPlayers;
   readonly player = this.state.selectPlayer;
@@ -79,6 +82,29 @@ export class ManageLocalPlayersPageComponent {
 
   onStartGameButtonClick() {
     this.router.navigate(['/active-game']);
+  }
+
+  onBackButtonClick() {
+    this.state.dispatch(
+      this.state.actions.leaveLocalGameButtonClicked,
+      undefined,
+    );
+  }
+
+  onDeletePlayerButtonClick(player: Player) {
+    this.confirmationService.confirm({
+      message: `Delete ${player.name}?  This cannot be undone.`,
+      header: 'Delete Player',
+      accept: () => {
+        this.state.dispatch(this.state.actions.deletePlayerConfirmed, {
+          playerId: player.id,
+        });
+      },
+      acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',
+      rejectButtonStyleClass: 'p-button-text w-4rem',
+      acceptIcon: 'none',
+      rejectIcon: 'none',
+    });
   }
 
   readonly GameTypes = GameTypes;

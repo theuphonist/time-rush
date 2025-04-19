@@ -1,6 +1,6 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, inject } from '@angular/core';
-import { Confirmation } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
@@ -16,7 +16,7 @@ import { Player } from '../util/player-types';
       [text]="game()?.name ?? 'Error!'"
       alwaysSmall
       backButtonIcon="pi-sign-out"
-      [navigationConfirmation]="navigationConfirmation"
+      (backButtonClick)="onBackButtonClick()"
     />
     <main class="mt-page-content">
       @if (game() && connectedAndSortedPlayers().length) {
@@ -70,6 +70,7 @@ import { Player } from '../util/player-types';
 })
 export class GameLobbyPageComponent {
   private readonly state = inject(StateService);
+  private readonly confirmationService = inject(ConfirmationService);
 
   readonly game = this.state.selectGame;
   readonly connectedAndSortedPlayers =
@@ -84,19 +85,6 @@ export class GameLobbyPageComponent {
     this.playerIsHost() ? this.allPlayerIds() : [this.playerId() ?? '_'],
   );
 
-  readonly navigationConfirmation: Confirmation = {
-    message:
-      "Leave this game?  If you want to return, you'll need to join as a new player.",
-    header: 'Leave Game',
-    accept: () => {
-      this.state.dispatch(this.state.actions.leaveGameConfirmed, undefined);
-    },
-    acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',
-    rejectButtonStyleClass: 'p-button-text w-4rem',
-    acceptIcon: 'none',
-    rejectIcon: 'none',
-  };
-
   onStartGameButtonClick() {
     this.state.dispatch(this.state.actions.startGameButtonClicked, undefined);
   }
@@ -109,5 +97,23 @@ export class GameLobbyPageComponent {
     moveItemInArray(playerIds, event.previousIndex, event.currentIndex);
 
     this.state.dispatch(this.state.actions.playersReordered, { playerIds });
+  }
+
+  onBackButtonClick() {
+    this.confirmationService.confirm({
+      message:
+        "Leave this game?  If you want to return, you'll need to join as a new player.",
+      header: 'Leave Game',
+      accept: () => {
+        this.state.dispatch(
+          this.state.actions.leaveOnlineGameConfirmed,
+          undefined,
+        );
+      },
+      acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',
+      rejectButtonStyleClass: 'p-button-text w-4rem',
+      acceptIcon: 'none',
+      rejectIcon: 'none',
+    });
   }
 }

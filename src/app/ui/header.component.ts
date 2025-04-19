@@ -4,9 +4,10 @@ import {
   computed,
   inject,
   input,
+  output,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Confirmation, ConfirmationService } from 'primeng/api';
+import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 
 @Component({
@@ -19,44 +20,44 @@ import { ButtonModule } from 'primeng/button';
       [class.header-border]="alwaysSmall()"
     >
       @if (!alwaysSmall()) {
-      <h1 class="my-0 w-full large-header">{{ text() }}</h1>
+        <h1 class="my-0 w-full large-header">{{ text() }}</h1>
       } @else {
-      <div class="w-full grid">
-        <div class="col-2 text-center">
-          @if (navigationConfirmation()) {
-          <p-button
-            styleClass="p-0"
-            [icon]="'pi ' + _backButtonIcon()"
-            [text]="true"
-            (click)="confirmNavigation()"
-          />
-          } @else if (routeToPreviousPage()){
-          <a [routerLink]="routeToPreviousPage()">
-            <i [class]="'text-primary pi ' + _backButtonIcon()"></i>
-          </a>
-          }
+        <div class="w-full grid">
+          <div class="col-2 text-center">
+            @if (routeToPreviousPage()) {
+              <a [routerLink]="routeToPreviousPage()">
+                <i [class]="'text-primary pi ' + _backButtonIcon()"></i>
+              </a>
+            } @else {
+              <p-button
+                styleClass="p-0"
+                [icon]="'pi ' + _backButtonIcon()"
+                [text]="true"
+                (click)="backButtonClick.emit()"
+              />
+            }
+          </div>
+          <div class="col-8 text-center">
+            <h3 class="my-0 justify-self-center small-header">
+              {{ text() }}
+            </h3>
+          </div>
         </div>
-        <div class="col-8 text-center">
-          <h3 class="my-0 justify-self-center small-header">
-            {{ text() }}
-          </h3>
-        </div>
-      </div>
-
       }
     </header>
   `,
   styles: `
-  .background-blur {
-    backdrop-filter: blur(18px);
-  }
-  .large-header {
-    margin-left: var(--base-x-padding-margin);
-    margin-right: var(--base-x-padding-margin);
-  }
-  .header-border  {
-    border-bottom: solid 1px var(--surface-border)
-  }`,
+    .background-blur {
+      backdrop-filter: blur(18px);
+    }
+    .large-header {
+      margin-left: var(--base-x-padding-margin);
+      margin-right: var(--base-x-padding-margin);
+    }
+    .header-border {
+      border-bottom: solid 1px var(--surface-border);
+    }
+  `,
 })
 export class HeaderComponent {
   private readonly confirmationService = inject(ConfirmationService);
@@ -65,17 +66,10 @@ export class HeaderComponent {
   readonly alwaysSmall = input(false, { transform: booleanAttribute });
   readonly routeToPreviousPage = input<string>();
   readonly backButtonIcon = input<string>();
-  readonly navigationConfirmation = input<Confirmation>();
+
+  readonly backButtonClick = output();
 
   readonly _backButtonIcon = computed(() =>
-    this.backButtonIcon() ? this.backButtonIcon() : 'pi-arrow-left'
+    this.backButtonIcon() ? this.backButtonIcon() : 'pi-arrow-left',
   );
-
-  confirmNavigation() {
-    const navigationConfirmation = this.navigationConfirmation();
-
-    if (navigationConfirmation) {
-      this.confirmationService.confirm(navigationConfirmation);
-    }
-  }
 }

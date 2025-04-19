@@ -27,7 +27,8 @@ export interface TimeRushActions {
     errorDetail: string;
   }>;
   startGameButtonClicked: ActionFunction<void>;
-  leaveGameConfirmed: ActionFunction<void>;
+  leaveOnlineGameConfirmed: ActionFunction<void>;
+  leaveLocalGameButtonClicked: ActionFunction<void>;
   joinGameButtonClicked: ActionFunction<{ joinCode: Game['joinCode'] }>;
   joinGameFailed: ActionFunction<{
     errorDetail: string;
@@ -52,6 +53,7 @@ export interface TimeRushActions {
   updatePlayerFailed: ActionFunction<{
     errorDetail: string;
   }>;
+  deletePlayerConfirmed: ActionFunction<{ playerId: Player['id'] }>;
 }
 
 export interface TimeRushState {
@@ -66,5 +68,5 @@ export interface DispatchLogEntry {
   dispatchTimestamp: Date;
   resolveTimestamp: Date;
   actionName: string;
-  stateSnapshot: TimeRushState;
+  diff: Partial<TimeRushState>;
 }

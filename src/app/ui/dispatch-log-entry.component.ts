@@ -29,6 +29,6 @@ export class DispatchLogEntryComponent {
   readonly logEntry = input.required<DispatchLogEntry>();
 
   onLogButtonClick() {
-    console.log(this.logEntry().stateSnapshot);
+    console.log(this.logEntry().diff);
   }
 }

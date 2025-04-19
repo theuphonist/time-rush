@@ -1,13 +1,19 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop';
 import { Component, computed, input, output } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { ButtonModule } from 'primeng/button';
 import { Player } from '../util/player-types';
 import { PlayerNameWithIconComponent } from './player-name-with-icon.component';
 
 @Component({
   selector: 'time-rush-player-list',
   standalone: true,
-  imports: [PlayerNameWithIconComponent, RouterLink, DragDropModule],
+  imports: [
+    PlayerNameWithIconComponent,
+    RouterLink,
+    DragDropModule,
+    ButtonModule,
+  ],
   template: `
     <!-- Players -->
     <div
@@ -33,14 +39,25 @@ import { PlayerNameWithIconComponent } from './player-name-with-icon.component';
             />
           </div>
 
-          @if (editablePlayerIdSet().has(_player.id)) {
-            <a
-              class="text-primary px-2 py-2"
-              [routerLink]="'/edit-player/' + [_player.id]"
-            >
-              <i class="pi pi-pencil"></i>
-            </a>
-          }
+          <div class="flex align-items-center gap-2">
+            @if (editablePlayerIdSet().has(_player.id)) {
+              <a
+                class="text-primary px-2 py-2"
+                [routerLink]="'/edit-player/' + [_player.id]"
+              >
+                <i class="pi pi-pencil"></i>
+              </a>
+            }
+
+            @if (deletablePlayerIdSet().has(_player.id)) {
+              <p-button
+                icon="pi pi-trash"
+                [text]="true"
+                (click)="onDeletePlayerButtonClick(_player)"
+                [ariaLabel]="'Delete player ' + _player.name"
+              />
+            }
+          </div>
 
           <!-- Drag Placeholder -->
           <div class="surface-200 h-4rem w-full" *cdkDragPlaceholder></div>
@@ -64,17 +81,27 @@ import { PlayerNameWithIconComponent } from './player-name-with-icon.component';
 })
 export class PlayerListComponent {
   readonly players = input.required<Player[]>();
-  readonly editablePlayerIds = input.required<Player['id'][]>();
+  readonly editablePlayerIds = input<Player['id'][]>([]);
+  readonly deletablePlayerIds = input<Player['id'][]>([]);
   readonly hostPlayerId = input<Player['id']>();
   readonly reorderable = input<boolean>();
+
+  readonly playerOrderChange = output<CdkDragDrop<string[]>>();
+  readonly deletePlayerButtonClick = output<{ player: Player }>();
 
   readonly editablePlayerIdSet = computed(
     () => new Set(this.editablePlayerIds()),
   );
 
-  readonly playerOrderChange = output<CdkDragDrop<string[]>>();
+  readonly deletablePlayerIdSet = computed(
+    () => new Set(this.deletablePlayerIds()),
+  );
 
   onPlayerDrop(event: CdkDragDrop<string[]>): void {
     this.playerOrderChange.emit(event);
+  }
+
+  onDeletePlayerButtonClick(player: Player) {
+    this.deletePlayerButtonClick.emit({ player });
   }
 }

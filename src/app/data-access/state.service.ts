@@ -9,16 +9,11 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
+import { diff } from 'deep-object-diff';
 import { MessageService } from 'primeng/api';
 import { catchError, firstValueFrom, of } from 'rxjs';
 import { ulid } from 'ulid';
-import {
-  LOCAL_CREATED_AT,
-  LOCAL_GAME_ID,
-  LOCAL_PLAYER_PREFIX,
-  LOCAL_SESSION_ID,
-  MAX_DISPATCH_LOG_ENTRIES,
-} from '../util/constants';
+import { LOCAL_GAME_ID, MAX_DISPATCH_LOG_ENTRIES } from '../util/constants';
 import { Game, GameTypes } from '../util/game-types';
 import {
   getRandomPlayerColor,
@@ -323,10 +318,17 @@ export class StateService {
 
       // create game
       if (gameForm.gameType === GameTypes.Local) {
+        const createdLocalGame = this.gameService.createLocalGame(gameForm);
+        const localPlayers =
+          this.playerService.getLocalPlayersFromSessionStorage();
+
         this.state.update((prev) => ({
           ...prev,
-          game: this.gameService.createLocalGame(gameForm),
+          game: createdLocalGame,
+          players: localPlayers,
+          loading: false,
         }));
+
         this.router.navigate(['/manage-players']);
         return;
       }
@@ -397,7 +399,7 @@ export class StateService {
     },
     // TODO: handle this action
     startGameButtonClicked: () => {},
-    leaveGameConfirmed: async () => {
+    leaveOnlineGameConfirmed: async () => {
       this.state.update((prev) => ({
         ...prev,
         loading: true,
@@ -431,6 +433,15 @@ export class StateService {
 
       this.webSocketService.disconnect();
       this.router.navigate(['/']);
+    },
+    leaveLocalGameButtonClicked: () => {
+      this.state.update((prev) => ({
+        ...prev,
+        game: undefined,
+        players: undefined,
+        playerId: undefined,
+      }));
+      this.router.navigate(['/new-game']);
     },
     joinGameButtonClicked: async ({ joinCode }) => {
       this.state.update((prev) => ({
@@ -514,22 +525,12 @@ export class StateService {
       }
 
       if (this.selectIsLocalGame()) {
+        const createdLocalPlayer =
+          this.playerService.createLocalPlayer(playerForm);
+
         this.state.update((prev) => ({
           ...prev,
-          players: [
-            ...(prev.players ?? []),
-            {
-              ...playerForm,
-              id: `${LOCAL_PLAYER_PREFIX}${ulid()}`,
-              position:
-                Math.max(
-                  ...(prev.players?.map((player) => player.position) ?? [-1]),
-                ) + 1,
-              gameId: LOCAL_GAME_ID,
-              sessionId: LOCAL_SESSION_ID,
-              createdAt: LOCAL_CREATED_AT,
-            },
-          ],
+          players: [...(prev.players ?? []), createdLocalPlayer],
           loading: false,
         }));
 
@@ -611,8 +612,12 @@ export class StateService {
       }));
 
       if (this.selectIsLocalGame()) {
+        const updatedLocalPlayers =
+          this.playerService.reorderLocalPlayers(playerIds);
+
         this.state.update((prev) => ({
           ...prev,
+          players: updatedLocalPlayers,
           loading: false,
         }));
 
@@ -669,13 +674,24 @@ export class StateService {
       }));
 
       if (isLocalPlayerId(playerId)) {
+        const updatedLocalPlayer = this.playerService.updateLocalPlayer(
+          playerId,
+          playerForm,
+        );
+
+        if (!updatedLocalPlayer) {
+          this.dispatch(this.actions.updatePlayerFailed, {
+            errorDetail: `Failed to find player with ID ${playerId}.`,
+          });
+          return;
+        }
+
         this.state.update((prev) => ({
           ...prev,
           players: prev.players?.map((player) =>
             player.id === playerId
               ? {
-                  ...player,
-                  ...playerForm,
+                  ...updatedLocalPlayer,
                 }
               : player,
           ),
@@ -721,9 +737,21 @@ export class StateService {
         detail: errorDetail,
       });
     },
+    deletePlayerConfirmed: ({ playerId }) => {
+      const deletedPlayer = this.playerService.deleteLocalPlayer(playerId);
+
+      if (deletedPlayer) {
+        this.state.update((prev) => ({
+          ...prev,
+          players: prev.players?.filter(
+            (player) => player.id !== deletedPlayer.id,
+          ),
+        }));
+      }
+    },
   };
 
-  // Signal Effects
+  // Effects
   private readonly updateSessionStorageOnPlayerIdUpdates = effect(() =>
     this.sessionStorageService.setItem(
       SessionStorageKeys.PlayerId,
@@ -731,26 +759,9 @@ export class StateService {
     ),
   );
 
-  private readonly updateSessionStorageOnLocalPlayerUpdates = effect(() => {
-    if (this.selectIsLocalGame()) {
-      this.sessionStorageService.setItem(
-        SessionStorageKeys.Players,
-        this.selectPlayers() ?? null,
-      );
-    }
-  });
-
-  private readonly updateSessionStorageOnLocalGameUpdates = effect(() => {
-    if (this.selectIsLocalGame() || !this.selectGame()) {
-      this.sessionStorageService.setItem(
-        SessionStorageKeys.Game,
-        this.selectGame() ?? null,
-      );
-    }
-  });
-
   dispatch<T>(action: ActionFunction<T>, args: T) {
     const timestamp = new Date();
+    const originalState = this.state();
     const promiseOrVoid = action(args);
 
     if (promiseOrVoid) {
@@ -760,7 +771,7 @@ export class StateService {
           dispatchTimestamp: timestamp,
           resolveTimestamp: new Date(),
           actionName: action.name,
-          stateSnapshot: this.state(),
+          diff: diff(originalState, this.state()),
         }),
       );
       return;
@@ -771,7 +782,7 @@ export class StateService {
       dispatchTimestamp: timestamp,
       resolveTimestamp: new Date(),
       actionName: action.name,
-      stateSnapshot: this.state(),
+      diff: diff(originalState, this.state()),
     });
   }
 
