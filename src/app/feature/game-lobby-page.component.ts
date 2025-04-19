@@ -2,6 +2,7 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop';
 import { Component, computed, inject } from '@angular/core';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { SkeletonModule } from 'primeng/skeleton';
 import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerListComponent } from '../ui/player-list.component';
@@ -10,10 +11,10 @@ import { Player } from '../util/player-types';
 @Component({
   selector: 'time-rush-game-lobby-page',
   standalone: true,
-  imports: [HeaderComponent, PlayerListComponent, ButtonModule],
+  imports: [HeaderComponent, PlayerListComponent, ButtonModule, SkeletonModule],
   template: `
     <time-rush-header
-      [text]="game()?.name ?? 'Error!'"
+      [text]="game()?.name ?? 'Time Rush'"
       alwaysSmall
       backButtonIcon="pi-sign-out"
       (backButtonClick)="onBackButtonClick()"
@@ -60,10 +61,11 @@ import { Player } from '../util/player-types';
           }
         }
       } @else {
-        <p class="font-italic">
-          Oops! Something went wrong... Return to the home page and create a new
-          game to get started.
-        </p>
+        <div class="flex gap-2">
+          <p-skeleton height="4rem" width="7rem" />
+          <p-skeleton height="4rem" width="8rem" />
+        </div>
+        <p-skeleton height="10rem" styleClass="w-full mt-2" />
       }
     </main>
   `,
