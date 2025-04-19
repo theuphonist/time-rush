@@ -95,7 +95,7 @@ export class PlayerFormComponent implements OnInit {
     if (!this.playerForm.valid) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Error creating player',
+        summary: 'Create Player Error',
         detail: 'Missing required fields.',
       });
 

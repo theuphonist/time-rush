@@ -57,7 +57,7 @@ export class JoinGamePageComponent {
     if (!JOIN_CODE_REGEX.test(this.joinCode())) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Unable to join game',
+        summary: 'Join Game Error',
         detail: `${this.joinCode()} is not a valid join code.`,
       });
       return;

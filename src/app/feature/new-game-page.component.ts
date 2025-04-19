@@ -212,8 +212,8 @@ export class NewGamePageComponent {
     if (!this.newGameForm.valid) {
       this.messageService.add({
         severity: 'error',
-        summary: 'Failed to create game',
-        detail: 'Missing required fields',
+        summary: 'Create Game Error',
+        detail: 'Missing required fields.',
       });
       return;
     }
