@@ -33,6 +33,16 @@ export class GameService {
     });
   }
 
+  updateOnlineGame(
+    gameId: Game['id'],
+    gameUpdates: Partial<Game>,
+  ): Observable<Game | null> {
+    return this.apiService.update<Game | null>(
+      [Endpoints.GAME, gameId],
+      gameUpdates,
+    );
+  }
+
   // Local Game CRUD
   createLocalGame(gameForm: GameForm): Game {
     const newGame: Game = {

@@ -57,11 +57,8 @@ export class WebSocketService implements OnDestroy {
         filter((isConnected) => isConnected),
         timeout(CONNECTION_TIMEOUT),
         tap(() => {
-          this.subscribe(`${BASE_INCOMING_WS_TOPIC}/${gameId}`);
-          this.sendMessage(
-            `${BASE_OUTGOING_WS_TOPIC}/${WebSocketTopics.Connect}`,
-            { data: { playerId } }
-          );
+          this.subscribe(gameId);
+          this.sendMessage(WebSocketTopics.Connect, { data: { playerId } });
         }),
         catchError((err) => {
           if (err instanceof TimeoutError) {
@@ -69,8 +66,8 @@ export class WebSocketService implements OnDestroy {
           }
 
           throw err;
-        })
-      )
+        }),
+      ),
     );
   }
 
@@ -81,9 +78,12 @@ export class WebSocketService implements OnDestroy {
 
   private subscribe(topic: string) {
     this.subscriptions.push(
-      this.stompClient.subscribe(topic, (message) => {
-        this.messages$.next(JSON.parse(message.body) as WebSocketMessage);
-      })
+      this.stompClient.subscribe(
+        `${BASE_INCOMING_WS_TOPIC}/${topic}`,
+        (message) => {
+          this.messages$.next(JSON.parse(message.body) as WebSocketMessage);
+        },
+      ),
     );
   }
 
@@ -101,7 +101,7 @@ export class WebSocketService implements OnDestroy {
     }
 
     this.stompClient.publish({
-      destination,
+      destination: `${BASE_OUTGOING_WS_TOPIC}/${destination}`,
       body: JSON.stringify(message),
     });
 

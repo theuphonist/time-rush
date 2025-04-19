@@ -1,21 +1,32 @@
+import { AsyncPipe } from '@angular/common';
 import {
+  AfterViewInit,
   Component,
-  computed,
+  ElementRef,
   inject,
-  signal,
-  WritableSignal,
+  ViewChild,
 } from '@angular/core';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import {
+  fromEvent,
+  interval,
+  map,
+  merge,
+  Observable,
+  of,
+  repeat,
+  startWith,
+  takeUntil,
+} from 'rxjs';
 import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerTimerComponent } from '../ui/player-timer.component';
-import { LOCAL_GAME_ID } from '../util/constants';
 
 @Component({
   selector: 'time-rush-active-game-page',
   standalone: true,
-  imports: [HeaderComponent, PlayerTimerComponent, ButtonModule],
+  imports: [HeaderComponent, PlayerTimerComponent, ButtonModule, AsyncPipe],
   template: `
     <time-rush-header
       [text]="game()?.name ?? 'Game'"
@@ -23,87 +34,98 @@ import { LOCAL_GAME_ID } from '../util/constants';
       backButtonIcon="pi-sign-out"
       (backButtonClick)="onBackButtonClick()"
     />
-    @if (game(); as game) {
-      <div class="mt-page-content">
-        @if (players(); as players) {
-          @for (player of players; track player.id) {
-            <div class="mb-2">
-              <time-rush-player-timer
-                [turnLength]="game.turnLength"
-                [timeUnits]="game.turnLengthUnits"
-                [isActive]="activePlayerId() === player.id"
-                [player]="player"
-              ></time-rush-player-timer>
-            </div>
-          }
+    <main class="mt-page-content">
+      <div class="flex flex-column gap-2">
+        @for (player of samplePlayers; track player.id) {
+          <time-rush-player-timer
+            [isActive]="$index === samplePlayerIndex"
+            [maxValue]="sampleMax"
+            [currentValue]="(sampleTimer$ | async) ?? 0"
+            [player]="player"
+          />
         }
       </div>
-
-      @if (showEndTurnButton()) {
-        <p-button
-          styleClass="w-full h-8rem mt-6"
-          [label]="endTurnButtonText()"
-          (click)="changeActivePlayer()"
-        />
-      }
-    } @else {
-      <p class="mt-page-content font-italic">
-        Game not available. Return to home page to create a new game.
-      </p>
-    }
+      <button
+        class="p-button w-full mt-2 flex justify-content-center"
+        #restartButton
+      >
+        Restart Timer
+      </button>
+      <button
+        class="p-button w-full mt-2 flex justify-content-center"
+        (click)="
+          this.samplePlayerIndex =
+            this.samplePlayerIndex === this.samplePlayers.length - 1
+              ? 0
+              : this.samplePlayerIndex + 1
+        "
+        #switchPlayerButton
+      >
+        Switch Player
+      </button>
+    </main>
   `,
   styles: ``,
 })
-export class ActiveGamePageComponent {
+export class ActiveGamePageComponent implements AfterViewInit {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly state = inject(StateService);
 
+  @ViewChild('restartButton')
+  restartButtonElement!: ElementRef<HTMLButtonElement>;
+  @ViewChild('switchPlayerButton')
+  switchPlayerButton!: ElementRef<HTMLButtonElement>;
+
+  readonly sampleMax = 20000;
+  private restartNotifier: Observable<unknown> = of();
+
+  sampleTimer$: Observable<number> = of();
+  samplePlayerIndex = 0;
+
+  readonly samplePlayers = [
+    {
+      name: 'Josh',
+      color: '#FF0000',
+      id: '1',
+      gameId: 'abc',
+      position: 0,
+      sessionId: 'xyz',
+      createdAt: new Date(),
+    },
+    {
+      name: 'Leo',
+      color: '#FF00FF',
+      id: '2',
+      gameId: 'abc',
+      position: 1,
+      sessionId: 'xyz',
+      createdAt: new Date(),
+    },
+    {
+      name: 'Colin',
+      color: '#FFFF00',
+      id: '3',
+      gameId: 'abc',
+      position: 2,
+      sessionId: 'xyz',
+      createdAt: new Date(),
+    },
+  ];
+
   readonly game = this.state.selectGame;
-  readonly players = this.state.selectPlayers;
-  readonly player = this.state.selectPlayer;
-  readonly activePlayerId = signal('FIXME');
-  readonly nextPlayer = signal({
-    id: 'id-FIXME',
-    name: 'name-FIXME',
-    color: '#FF0000',
-    gameId: 'gameId-FIXME',
-    position: -1,
-    sessionId: 'sessionId-FIXME',
-    createdAt: new Date(),
-  });
 
-  readonly showEndTurnButton = computed(
-    () =>
-      this.state.selectIsLocalGame() ||
-      !this.activePlayerId() ||
-      this.player()?.id === this.activePlayerId(),
-  );
+  ngAfterViewInit(): void {
+    this.restartNotifier = merge(
+      fromEvent(this.restartButtonElement.nativeElement, 'click'),
+      fromEvent(this.switchPlayerButton.nativeElement, 'click'),
+    );
 
-  readonly endTurnButtonText = computed(() => {
-    if (this.state.selectIsLocalGame()) {
-      return (
-        'Tap to start ' + (this.nextPlayer()?.name ?? 'Next Player') + "'s turn"
-      );
-    }
-
-    if (!this.activePlayerId()) {
-      return 'Tap to start game';
-    }
-
-    return 'Tap to end your turn';
-  });
-
-  readonly timerStates: WritableSignal<boolean[]> = signal(
-    new Array((this.players() ?? []).length).fill(false),
-  );
-
-  changeActivePlayer() {
-    if (this.game()?.id === LOCAL_GAME_ID) {
-      console.log('changing local game active player');
-      return;
-    }
-
-    console.log('changing online game active player');
+    this.sampleTimer$ = interval(1000).pipe(
+      startWith(-1),
+      map((val) => this.sampleMax - 1000 * (val + 1)),
+      takeUntil(this.restartNotifier),
+      repeat(),
+    );
   }
 
   onBackButtonClick() {

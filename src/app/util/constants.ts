@@ -33,9 +33,11 @@ export const DEFAULT_PLAYER_COLORS: `#${string}`[] = [
   '#181818',
 ];
 export const JOIN_CODE_REGEX = /^[a-zA-Z0-9]{4}$/;
+export const TIMER_REFRESH_PERIOD = 1000;
 
 // Local Placeholders
 export const LOCAL_GAME_ID = '__localgame__';
+export const LOCAL_PLAYER_ID = '__localplayer__';
 export const LOCAL_JOIN_CODE = '__localjoincode__';
 export const LOCAL_CREATED_AT = new Date();
 export const LOCAL_SESSION_ID = '__localsessionid__';

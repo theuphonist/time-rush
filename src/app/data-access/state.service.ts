@@ -1,11 +1,11 @@
 import {
-  Injectable,
-  Signal,
-  WritableSignal,
   computed,
   effect,
   inject,
+  Injectable,
+  Signal,
   signal,
+  WritableSignal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
@@ -13,12 +13,22 @@ import { diff } from 'deep-object-diff';
 import { MessageService } from 'primeng/api';
 import { catchError, firstValueFrom, of } from 'rxjs';
 import { ulid } from 'ulid';
-import { LOCAL_GAME_ID, MAX_DISPATCH_LOG_ENTRIES } from '../util/constants';
-import { Game, GameTypes } from '../util/game-types';
+import {
+  LOCAL_GAME_ID,
+  LOCAL_PLAYER_ID,
+  MAX_DISPATCH_LOG_ENTRIES,
+} from '../util/constants';
+import {
+  Game,
+  GameStatuses,
+  GameStatusToRoute,
+  GameTypes,
+} from '../util/game-types';
 import {
   getRandomPlayerColor,
   isJoinable,
   isLocalPlayerId,
+  isRejoinable,
 } from '../util/helpers';
 import { Player } from '../util/player-types';
 import { SessionStorageKeys } from '../util/session-storage-types';
@@ -57,11 +67,6 @@ export class StateService {
       .subscribe((message) => {
         if (message.action === WebSocketActions.PlayersOrGameUpdated) {
           this.dispatch(this.actions.wsPlayersOrGameUpdated, undefined);
-          return;
-        }
-
-        if (message.action === WebSocketActions.GameStarted) {
-          this.dispatch(this.actions.wsGameStarted, undefined);
         }
       });
   }
@@ -123,11 +128,6 @@ export class StateService {
       ) as Player['id'] | null;
 
       if (!playerId) {
-        this.state.update((prev) => ({
-          ...prev,
-          loading: false,
-        }));
-
         this.dispatch(
           this.actions.emptyPlayerIdRetrievedFromStorage,
           undefined,
@@ -136,7 +136,7 @@ export class StateService {
         return;
       }
 
-      if (isLocalPlayerId(playerId)) {
+      if (playerId === LOCAL_PLAYER_ID) {
         this.dispatch(this.actions.localPlayerIdRetrievedFromStorage, {
           playerId,
         });
@@ -157,16 +157,10 @@ export class StateService {
       this.router.navigate(['/']);
     },
     localPlayerIdRetrievedFromStorage: ({ playerId }) => {
-      const players = this.sessionStorageService.getItem(
-        SessionStorageKeys.Players,
-      ) as Player[] | undefined;
-
-      if (!players) {
-        this.dispatch(this.actions.initializeAppFailed, {
-          errorDetail: 'Failed to load recent player data.',
-        });
-        return;
-      }
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
 
       const game = this.sessionStorageService.getItem(
         SessionStorageKeys.Game,
@@ -178,6 +172,10 @@ export class StateService {
         });
         return;
       }
+
+      const players = (this.sessionStorageService.getItem(
+        SessionStorageKeys.Players,
+      ) ?? []) as Player[];
 
       this.state.update((prev) => ({
         ...prev,
@@ -215,7 +213,7 @@ export class StateService {
         return;
       }
 
-      if (!isJoinable(game)) {
+      if (!isRejoinable(game)) {
         this.dispatch(this.actions.initializeAppFailed, {
           errorDetail: `Game "${game.name}" is no longer joinable.`,
         });
@@ -254,13 +252,15 @@ export class StateService {
         loading: false,
       }));
 
-      this.router.navigate(['/lobby']);
+      this.router.navigate([GameStatusToRoute[game.status]]);
     },
     initializeAppFailed: ({ errorDetail }) => {
       this.state.update((prev) => ({
         ...prev,
         loading: false,
       }));
+
+      this.webSocketService.disconnect();
 
       this.messageService.add({
         severity: 'error',
@@ -295,14 +295,22 @@ export class StateService {
         return;
       }
 
+      const previousState = this.state();
+
       this.state.update((prev) => ({
         ...prev,
         game,
         players,
       }));
+
+      // check for a follow-up action based on state change
+      if (
+        this.state().game?.status === GameStatuses.Active &&
+        previousState.game?.status !== GameStatuses.Active
+      ) {
+        this.router.navigate(['/active-game']);
+      }
     },
-    // TODO: handle this action
-    wsGameStarted: () => {},
 
     // game
     createGameButtonClicked: async ({ gameForm }) => {
@@ -326,6 +334,7 @@ export class StateService {
           ...prev,
           game: createdLocalGame,
           players: localPlayers,
+          playerId: LOCAL_PLAYER_ID,
           loading: false,
         }));
 
@@ -397,8 +406,64 @@ export class StateService {
         detail: errorDetail,
       });
     },
-    // TODO: handle this action
-    startGameButtonClicked: () => {},
+    startGameButtonClicked: async () => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
+      const gameId = this.selectGame()?.id;
+
+      if (!gameId) {
+        this.dispatch(this.actions.startGameFailed, {
+          errorDetail: 'Failed to load game data.',
+        });
+        return;
+      }
+
+      if (this.selectIsLocalGame()) {
+        this.state.update((prev) => ({
+          ...prev,
+          loading: false,
+        }));
+
+        this.router.navigate(['/active-game']);
+      }
+
+      const updatedGame = await firstValueFrom(
+        this.gameService
+          .updateOnlineGame(gameId, {
+            status: GameStatuses.Active,
+          })
+          .pipe(catchError(() => of(undefined))),
+      );
+
+      if (!updatedGame) {
+        this.dispatch(this.actions.startGameFailed, {
+          errorDetail: 'Server failed to respond.',
+        });
+        return;
+      }
+
+      this.state.update((prev) => ({
+        ...prev,
+        game: updatedGame,
+      }));
+
+      this.router.navigate(['/active-game']);
+    },
+    startGameFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Start Game Error',
+        detail: errorDetail,
+      });
+    },
     leaveOnlineGameConfirmed: async () => {
       this.state.update((prev) => ({
         ...prev,
@@ -459,7 +524,7 @@ export class StateService {
 
       if (!games?.length) {
         this.dispatch(this.actions.joinGameFailed, {
-          errorDetail: `Could not find game with join code ${joinCode}.`,
+          errorDetail: `Failed to find game with join code ${joinCode}.`,
         });
         return;
       }

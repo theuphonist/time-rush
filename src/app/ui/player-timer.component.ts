@@ -1,8 +1,6 @@
-import { booleanAttribute, Component, computed, input } from '@angular/core';
-import { toObservable, toSignal } from '@angular/core/rxjs-interop';
-import { interval, map, of, startWith, switchMap } from 'rxjs';
+import { Component, computed, input } from '@angular/core';
+import { TIMER_REFRESH_PERIOD } from '../util/constants';
 import { FontColorClassFromBackgroundPipe } from '../util/font-color-class-from-background.pipe';
-import { TimeUnits } from '../util/game-types';
 import { Player } from '../util/player-types';
 import { TimeWithColonsPipe } from '../util/time-with-colons.pipe';
 
@@ -12,87 +10,67 @@ import { TimeWithColonsPipe } from '../util/time-with-colons.pipe';
   imports: [TimeWithColonsPipe, FontColorClassFromBackgroundPipe],
   template: `
     <div
-      class="border-round surface-400 p-1"
+      class="surface-400 relative"
       [class.opacity-40]="!isActive()"
-      [style.transition]="'width ease-out 0.25s, height ease-out 0.25s'"
-      [style.width.%]="
-        isActive() ? timerWidthsInPercent.active : timerWidthsInPercent.inactive
-      "
-      [style.height.rem]="
-        isActive() ? timerHeightsInRem.active : timerHeightsInRem.inactive
-      "
+      [style]="outerStyle()"
     >
+      <div class="h-full" [style]="timerBarStyle()"></div>
       <div
-        class="relative border-round-sm border-2 h-full w-full"
-        [style.border-color]="player().color"
-        [style.background-color]="isActive() ? '' : player().color"
+        class="absolute flex flex-column gap-1 align-items-center justify-content-center left-0 right-0 top-0 bottom-0"
       >
-        <div
-          class="absolute h-full"
-          [style.transition]="'width linear ' + REFRESH_PERIOD / 1000 + 's'"
-          [style.width.%]="isActive() ? percentRemaining() : 100"
-          [style.background-color]="player().color"
-        ></div>
-        <!-- text-color utility classes aren't working on iOS, use [style] instead -->
-        <div
-          class="
-            absolute flex flex-column w-full h-full align-items-center justify-content-evenly"
-          [style]="
-            'color: var(--' +
-            (player().color | fontColorClassFromBackground) +
-            ')'
+        <p
+          [class]="
+            'm-0 font-bold text-' +
+            (player().color | fontColorClassFromBackground)
           "
         >
-          <div class="font-semibold opacity-100">
-            {{ player().name }}
-          </div>
-          @if (isActive()){
-          <div>
-            {{ timeRemaining() ?? turnLengthInMs() | timeWithColons }}
-          </div>
-          }
-        </div>
+          {{ player().name }}
+        </p>
+        @if (isActive()) {
+          <p
+            [class]="
+              'm-0 text-' + (player().color | fontColorClassFromBackground)
+            "
+          >
+            {{ currentValue() | timeWithColons }}
+          </p>
+        }
       </div>
     </div>
   `,
 })
 export class PlayerTimerComponent {
-  readonly isActive = input(false, { transform: booleanAttribute });
-  readonly turnLength = input.required<number>();
-  readonly timeUnits = input.required<TimeUnits>();
+  readonly isActive = input.required<boolean>();
+  readonly maxValue = input.required<number>(); // in ms
+  readonly currentValue = input.required<number>(); // in ms
   readonly player = input.required<Player>();
 
-  readonly timerWidthsInPercent = { active: 100, inactive: 50 };
-  readonly timerHeightsInRem = { active: 4, inactive: 2.5 };
-  readonly REFRESH_PERIOD = 1000;
+  readonly outerStyle = computed(() => ({
+    width: this.isActive() ? '100%' : '50%',
+    height: this.isActive() ? '4rem' : '2.5rem',
+    borderRadius: '8px',
+    padding: '4px',
+    transition: 'width ease-out 0.25s, height ease-out 0.25s',
+  }));
 
-  readonly turnLengthInMs = computed(
-    () =>
-      this.turnLength() *
-      (this.timeUnits() === TimeUnits.Minutes ? 60 : 1) *
-      1000
-  );
+  readonly timerBarStyle = computed(() => ({
+    backgroundColor: this.player().color,
+    borderRadius: '4px',
+    width: `${this.widthPercent() ?? 100}%`,
+    transition: this.isActive() ? 'width linear 1s' : undefined,
+  }));
 
-  private readonly isActive$ = toObservable(this.isActive);
+  readonly widthPercent = computed(() => {
+    // without this adjustment, the timer won't show the desired value until
+    // one second after it changes (or whatever the refresh period is) because
+    // of the animation.  this adjustment tells the timer to go to its next
+    // value instead of trying to display its true current value
+    const adjustedCurrentValue = this.currentValue() - TIMER_REFRESH_PERIOD;
 
-  private readonly timeRemaining$ = this.isActive$.pipe(
-    switchMap((isActive) =>
-      // reset timer when this player deactivates
-      // interval() first emits "0" after initial delay, use "startWith" to get initial value immediately
-      isActive ? interval(this.REFRESH_PERIOD).pipe(startWith(-1)) : of(-1)
-    ),
-    map(
-      (timerTicks) =>
-        this.turnLengthInMs() - (timerTicks + 1) * this.REFRESH_PERIOD
-    )
-  );
+    if (!this.isActive() || adjustedCurrentValue > this.maxValue()) {
+      return 100;
+    }
 
-  readonly timeRemaining = toSignal(this.timeRemaining$);
-  readonly percentRemaining = computed(
-    () =>
-      (((this.timeRemaining() ?? this.turnLengthInMs() + this.REFRESH_PERIOD) -
-        this.REFRESH_PERIOD) /
-        this.turnLengthInMs()) *
-      100
-  );
+    return (adjustedCurrentValue / this.maxValue()) * 100;
+  });
 }

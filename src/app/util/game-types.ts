@@ -34,3 +34,12 @@ export enum TimeUnits {
   Seconds = 's',
   Minutes = 'min',
 }
+
+export const GameStatusToRoute: Record<GameStatuses, `/${string}`> = {
+  [GameStatuses.Pending]: '/lobby',
+  [GameStatuses.Active]: '/active-game',
+
+  // unused, but needed for type purposes
+  [GameStatuses.Complete]: '/',
+  [GameStatuses.Local]: '/',
+};

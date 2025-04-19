@@ -22,6 +22,10 @@ export function isJoinable(game: Game) {
   return game.status === GameStatuses.Pending;
 }
 
+export function isRejoinable(game: Game) {
+  return isJoinable(game) || game.status === GameStatuses.Active;
+}
+
 export function isLocalPlayerId(playerId: Player['id']) {
   return playerId.startsWith(LOCAL_PLAYER_PREFIX);
 }

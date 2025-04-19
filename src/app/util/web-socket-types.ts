@@ -14,6 +14,5 @@ export enum WebSocketActions {
 }
 
 export enum WebSocketTopics {
-  Game = 'game',
   Connect = 'connect',
 }
