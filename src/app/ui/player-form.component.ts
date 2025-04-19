@@ -1,4 +1,3 @@
-import { AsyncPipe } from '@angular/common';
 import { Component, inject, input, OnInit, output } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import {
@@ -28,7 +27,6 @@ export type BuildSubmitLabelFn = (args: { playerForm: PlayerForm }) => string;
     ButtonModule,
     ColorPickerModule,
     PlayerIconComponent,
-    AsyncPipe,
   ],
   template: `
     <form [formGroup]="playerForm" (ngSubmit)="onSubmit()">

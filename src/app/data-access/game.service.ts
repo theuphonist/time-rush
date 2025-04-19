@@ -1,10 +1,4 @@
-import {
-  Injectable,
-  WritableSignal,
-  computed,
-  inject,
-  signal,
-} from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Endpoints } from '../util/api-types';
 import {
@@ -12,7 +6,7 @@ import {
   LOCAL_GAME_ID,
   LOCAL_JOIN_CODE,
 } from '../util/constants';
-import { Game, GameForm, GameStatuses, TimeUnits } from '../util/game-types';
+import { Game, GameForm, GameStatuses } from '../util/game-types';
 import { SessionStorageKeys } from '../util/session-storage-types';
 import { ApiService } from './api.service';
 import { SessionStorageService } from './session-storage.service';
@@ -23,19 +17,6 @@ import { SessionStorageService } from './session-storage.service';
 export class GameService {
   private readonly apiService = inject(ApiService);
   private readonly sessionStorageService = inject(SessionStorageService);
-
-  readonly game: WritableSignal<Game> = signal({
-    id: LOCAL_GAME_ID,
-    name: 'Time Rush',
-    turnLength: 30,
-    turnLengthUnits: TimeUnits.Seconds,
-    joinCode: '_',
-    status: GameStatuses.Pending,
-    hostPlayerId: 'foo',
-    createdAt: new Date(),
-  });
-
-  readonly isLocalGame = computed(() => this.game().id === LOCAL_GAME_ID);
 
   // Online Game CRUD
   createOnlineGame(gameForm: GameForm): Observable<Game> {

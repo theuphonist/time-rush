@@ -5,11 +5,9 @@ import {
   signal,
   WritableSignal,
 } from '@angular/core';
-import { Router } from '@angular/router';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
-import { GameService } from '../data-access/game.service';
-import { PlayerService } from '../data-access/player.service';
+import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerTimerComponent } from '../ui/player-timer.component';
 import { LOCAL_GAME_ID } from '../util/constants';
@@ -20,7 +18,7 @@ import { LOCAL_GAME_ID } from '../util/constants';
   imports: [HeaderComponent, PlayerTimerComponent, ButtonModule],
   template: `
     <time-rush-header
-      [text]="game().name"
+      [text]="game()?.name ?? 'Game'"
       alwaysSmall
       backButtonIcon="pi-sign-out"
       (backButtonClick)="onBackButtonClick()"
@@ -57,27 +55,32 @@ import { LOCAL_GAME_ID } from '../util/constants';
   styles: ``,
 })
 export class ActiveGamePageComponent {
-  // TODO: add skeleton for when data is loading
-  private readonly gameService = inject(GameService);
-  private readonly playerService = inject(PlayerService);
-  private readonly router = inject(Router);
   private readonly confirmationService = inject(ConfirmationService);
+  private readonly state = inject(StateService);
 
-  readonly game = this.gameService.game;
-  readonly players = this.playerService.players;
-  readonly player = this.playerService.player;
-  readonly activePlayerId = this.playerService.activePlayerId;
-  readonly nextPlayer = this.playerService.nextPlayer;
+  readonly game = this.state.selectGame;
+  readonly players = this.state.selectPlayers;
+  readonly player = this.state.selectPlayer;
+  readonly activePlayerId = signal('FIXME');
+  readonly nextPlayer = signal({
+    id: 'id-FIXME',
+    name: 'name-FIXME',
+    color: '#FF0000',
+    gameId: 'gameId-FIXME',
+    position: -1,
+    sessionId: 'sessionId-FIXME',
+    createdAt: new Date(),
+  });
 
   readonly showEndTurnButton = computed(
     () =>
-      this.gameService.isLocalGame() ||
+      this.state.selectIsLocalGame() ||
       !this.activePlayerId() ||
-      this.player().id === this.activePlayerId(),
+      this.player()?.id === this.activePlayerId(),
   );
 
   readonly endTurnButtonText = computed(() => {
-    if (this.gameService.isLocalGame()) {
+    if (this.state.selectIsLocalGame()) {
       return (
         'Tap to start ' + (this.nextPlayer()?.name ?? 'Next Player') + "'s turn"
       );
@@ -95,12 +98,12 @@ export class ActiveGamePageComponent {
   );
 
   changeActivePlayer() {
-    if (this.game().id === LOCAL_GAME_ID) {
-      this.playerService.changeActiveLocalPlayer();
+    if (this.game()?.id === LOCAL_GAME_ID) {
+      console.log('changing local game active player');
       return;
     }
 
-    this.playerService.changeActiveOnlinePlayer();
+    console.log('changing online game active player');
   }
 
   onBackButtonClick() {
@@ -109,8 +112,10 @@ export class ActiveGamePageComponent {
       message:
         "Leave this game?  If you want to return, you'll need to join as a new player.",
       accept: () => {
-        this.playerService.leaveOnlineGame();
-        this.router.navigate(['/home']);
+        this.state.dispatch(
+          this.state.actions.leaveOnlineGameConfirmed,
+          undefined,
+        );
       },
       acceptButtonStyleClass: 'bg-red-400 border-none w-4rem ml-2',
       rejectButtonStyleClass: 'p-button-text w-4rem',
