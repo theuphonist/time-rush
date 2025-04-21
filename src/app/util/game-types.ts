@@ -4,10 +4,10 @@ export interface Game {
   id: string;
   name: string;
   turnLength: number;
-  turnLengthUnits: TimeUnits;
   joinCode: string;
   status: GameStatuses;
   hostPlayerId: Player['id'] | null;
+  activePlayerId: Player['id'] | null;
   createdAt: Date;
 }
 

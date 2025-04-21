@@ -57,7 +57,9 @@ export class PlayerTimerComponent {
     backgroundColor: this.player().color,
     borderRadius: '4px',
     width: `${this.widthPercent() ?? 100}%`,
-    transition: this.isActive() ? 'width linear 1s' : undefined,
+    transition: this.isActive()
+      ? `width linear ${Math.round(TIMER_REFRESH_PERIOD / 1000)}s`
+      : undefined,
   }));
 
   readonly widthPercent = computed(() => {

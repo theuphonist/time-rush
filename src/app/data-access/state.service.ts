@@ -67,6 +67,12 @@ export class StateService {
       .subscribe((message) => {
         if (message.action === WebSocketActions.PlayersOrGameUpdated) {
           this.dispatch(this.actions.wsPlayersOrGameUpdated, undefined);
+          return;
+        }
+        if (message.action === WebSocketActions.TimerValueChanged) {
+          const timerValue = message.data.timerValue;
+
+          this.dispatch(this.actions.wsTimerValueChanged, { timerValue });
         }
       });
   }
@@ -117,6 +123,16 @@ export class StateService {
       this.state()
         .players?.filter((player) => player.sessionId)
         ?.sort((player1, player2) => player1.position - player2.position) ?? [],
+  );
+
+  readonly selectActivePlayerId: Signal<Player['id'] | null> = computed(
+    () => this.state().game?.activePlayerId ?? null,
+  );
+
+  readonly selectPlayerIsActive: Signal<boolean> = computed(
+    () =>
+      !!this.selectPlayerId() &&
+      this.selectPlayerId() === this.selectActivePlayerId(),
   );
 
   // Actions
@@ -311,6 +327,13 @@ export class StateService {
         this.router.navigate(['/active-game']);
       }
     },
+    wsTimerValueChanged: ({ timerValue }) => {
+      if (this.selectPlayerIsActive()) {
+        return;
+      }
+
+      console.log(timerValue);
+    },
 
     // game
     createGameButtonClicked: async ({ gameForm }) => {
@@ -324,7 +347,7 @@ export class StateService {
         gameForm,
       );
 
-      // create game
+      // create local game
       if (gameForm.gameType === GameTypes.Local) {
         const createdLocalGame = this.gameService.createLocalGame(gameForm);
         const localPlayers =
@@ -342,6 +365,7 @@ export class StateService {
         return;
       }
 
+      // creat online game
       const createdGame = await firstValueFrom(
         this.gameService
           .createOnlineGame(gameForm)
@@ -448,6 +472,7 @@ export class StateService {
       this.state.update((prev) => ({
         ...prev,
         game: updatedGame,
+        loading: false,
       }));
 
       this.router.navigate(['/active-game']);
@@ -814,6 +839,97 @@ export class StateService {
         }));
       }
     },
+    changePlayerButtonClicked: async () => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
+      const gameId = this.selectGame()?.id;
+
+      if (!gameId) {
+        this.dispatch(this.actions.changePlayerFailed, {
+          errorDetail: 'Failed to load game data.',
+        });
+        return;
+      }
+
+      const activePlayerId = this.selectActivePlayerId();
+      const connectedAndSortedPlayers = this.selectConnectedAndSortedPlayers();
+
+      const nextActivePlayerId = getNextActivePlayerId(
+        activePlayerId,
+        connectedAndSortedPlayers,
+      );
+
+      if (this.selectIsLocalGame()) {
+        const updatedLocalGame = this.gameService.updateLocalGame({
+          activePlayerId: nextActivePlayerId,
+        });
+
+        if (!updatedLocalGame) {
+          this.dispatch(this.actions.changePlayerFailed, {
+            errorDetail: 'Failed to get game data from session storage.',
+          });
+          return;
+        }
+
+        this.state.update((prev) => ({
+          ...prev,
+          game: updatedLocalGame,
+        }));
+        return;
+      }
+
+      const updatedGame = await firstValueFrom(
+        this.gameService
+          .updateOnlineGame(gameId, {
+            activePlayerId: nextActivePlayerId,
+          })
+          .pipe(catchError(() => of(undefined))),
+      );
+
+      if (!updatedGame) {
+        this.dispatch(this.actions.changePlayerFailed, {
+          errorDetail: 'Server failed to respond.',
+        });
+        return;
+      }
+
+      this.state.update((prev) => ({
+        ...prev,
+        game: updatedGame,
+        loading: false,
+      }));
+    },
+    changePlayerFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Change Player Error',
+        detail: errorDetail,
+      });
+    },
+    timerValueChanged: ({ timerValue }) => {
+      if (!this.selectPlayerIsActive()) {
+        return;
+      }
+
+      const gameId = this.selectGame()?.id;
+
+      if (!gameId) {
+        return;
+      }
+
+      this.webSocketService.sendMessage(gameId, {
+        action: WebSocketActions.TimerValueChanged,
+        data: { timerValue },
+      });
+    },
   };
 
   // Effects
@@ -860,4 +976,30 @@ export class StateService {
   }
 
   readonly dispatchLog: WritableSignal<DispatchLogEntry[]> = signal([]);
+}
+
+function getNextActivePlayerId(
+  currentActivePlayerId: Game['activePlayerId'],
+  players: Player[],
+) {
+  if (!players.length) {
+    return null;
+  }
+
+  if (!currentActivePlayerId) {
+    return players[0].id;
+  }
+
+  const currentActivePlayerIndex = players.findIndex(
+    (player) => player.id === currentActivePlayerId,
+  );
+
+  if (
+    currentActivePlayerIndex < 0 ||
+    currentActivePlayerIndex >= players.length - 1
+  ) {
+    return players[0].id;
+  }
+
+  return players[currentActivePlayerIndex + 1].id;
 }

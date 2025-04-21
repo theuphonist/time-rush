@@ -6,12 +6,19 @@ import { SkeletonModule } from 'primeng/skeleton';
 import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerListComponent } from '../ui/player-list.component';
+import { MsToHmsStringPipe } from '../util/ms-to-hms-string';
 import { Player } from '../util/player-types';
 
 @Component({
   selector: 'time-rush-game-lobby-page',
   standalone: true,
-  imports: [HeaderComponent, PlayerListComponent, ButtonModule, SkeletonModule],
+  imports: [
+    HeaderComponent,
+    PlayerListComponent,
+    ButtonModule,
+    SkeletonModule,
+    MsToHmsStringPipe,
+  ],
   template: `
     <time-rush-header
       [text]="game()?.name ?? 'Time Rush'"
@@ -34,7 +41,7 @@ import { Player } from '../util/player-types';
                 Turn Length
               </h2>
               <p class="text-3xl font-bold m-0">
-                {{ game.turnLength }} {{ game.turnLengthUnits }}
+                {{ game.turnLength | msToHmsString }}
               </p>
             </div>
           </div>

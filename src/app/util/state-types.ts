@@ -19,6 +19,7 @@ export interface TimeRushActions {
 
   // web sockets
   wsPlayersOrGameUpdated: ActionFunction<void>;
+  wsTimerValueChanged: ActionFunction<{ timerValue: number }>;
 
   // game
   createGameButtonClicked: ActionFunction<{ gameForm: GameForm }>;
@@ -35,6 +36,9 @@ export interface TimeRushActions {
   joinGameFailed: ActionFunction<{
     errorDetail: string;
   }>;
+  changePlayerButtonClicked: ActionFunction<void>;
+  changePlayerFailed: ActionFunction<{ errorDetail: string }>;
+  timerValueChanged: ActionFunction<{ timerValue: number }>;
 
   //players
   createPlayerButtonClicked: ActionFunction<{

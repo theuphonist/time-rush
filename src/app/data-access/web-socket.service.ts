@@ -18,7 +18,11 @@ import {
 } from '../util/constants';
 import { Game } from '../util/game-types';
 import { Player } from '../util/player-types';
-import { WebSocketMessage, WebSocketTopics } from '../util/web-socket-types';
+import {
+  WebSocketActions,
+  WebSocketMessage,
+  WebSocketTopics,
+} from '../util/web-socket-types';
 
 @Injectable({
   providedIn: 'root',
@@ -58,7 +62,10 @@ export class WebSocketService implements OnDestroy {
         timeout(CONNECTION_TIMEOUT),
         tap(() => {
           this.subscribe(gameId);
-          this.sendMessage(WebSocketTopics.Connect, { data: { playerId } });
+          this.sendMessage(WebSocketTopics.Connect, {
+            action: WebSocketActions.Connect,
+            data: { playerId },
+          });
         }),
         catchError((err) => {
           if (err instanceof TimeoutError) {

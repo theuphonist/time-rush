@@ -1,32 +1,34 @@
 import { AsyncPipe } from '@angular/common';
-import {
-  AfterViewInit,
-  Component,
-  ElementRef,
-  inject,
-  ViewChild,
-} from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
+import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
+import { FormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
+import { InputNumberModule } from 'primeng/inputnumber';
 import {
-  fromEvent,
+  filter,
   interval,
   map,
-  merge,
-  Observable,
-  of,
-  repeat,
   startWith,
-  takeUntil,
+  switchMap,
+  withLatestFrom,
 } from 'rxjs';
 import { StateService } from '../data-access/state.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerTimerComponent } from '../ui/player-timer.component';
+import { TIMER_REFRESH_PERIOD } from '../util/constants';
 
 @Component({
   selector: 'time-rush-active-game-page',
   standalone: true,
-  imports: [HeaderComponent, PlayerTimerComponent, ButtonModule, AsyncPipe],
+  imports: [
+    HeaderComponent,
+    PlayerTimerComponent,
+    ButtonModule,
+    AsyncPipe,
+    InputNumberModule,
+    FormsModule,
+  ],
   template: `
     <time-rush-header
       [text]="game()?.name ?? 'Game'"
@@ -35,96 +37,87 @@ import { PlayerTimerComponent } from '../ui/player-timer.component';
       (backButtonClick)="onBackButtonClick()"
     />
     <main class="mt-page-content">
-      <div class="flex flex-column gap-2">
-        @for (player of samplePlayers; track player.id) {
-          <time-rush-player-timer
-            [isActive]="$index === samplePlayerIndex"
-            [maxValue]="sampleMax"
-            [currentValue]="(sampleTimer$ | async) ?? 0"
-            [player]="player"
-          />
+      @if (game(); as game) {
+        <div class="flex flex-column gap-2">
+          @for (player of players(); track player.id) {
+            <time-rush-player-timer
+              [isActive]="player.id === this.activePlayerId()"
+              [maxValue]="game.turnLength"
+              [currentValue]="(timeRemaining$ | async) ?? game.turnLength"
+              [player]="player"
+            />
+          }
+        </div>
+        @if (showChangePlayerButton()) {
+          <button
+            class="p-button w-full h-9rem mt-7 flex justify-content-center font-bold"
+            (click)="onChangeActivePlayerButtonClick()"
+            #switchPlayerButton
+          >
+            {{ changePlayerButtonText() }}
+          </button>
         }
-      </div>
-      <button
-        class="p-button w-full mt-2 flex justify-content-center"
-        #restartButton
-      >
-        Restart Timer
-      </button>
-      <button
-        class="p-button w-full mt-2 flex justify-content-center"
-        (click)="
-          this.samplePlayerIndex =
-            this.samplePlayerIndex === this.samplePlayers.length - 1
-              ? 0
-              : this.samplePlayerIndex + 1
-        "
-        #switchPlayerButton
-      >
-        Switch Player
-      </button>
+      }
     </main>
   `,
   styles: ``,
 })
-export class ActiveGamePageComponent implements AfterViewInit {
+export class ActiveGamePageComponent {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly state = inject(StateService);
 
-  @ViewChild('restartButton')
-  restartButtonElement!: ElementRef<HTMLButtonElement>;
-  @ViewChild('switchPlayerButton')
-  switchPlayerButton!: ElementRef<HTMLButtonElement>;
-
-  readonly sampleMax = 20000;
-  private restartNotifier: Observable<unknown> = of();
-
-  sampleTimer$: Observable<number> = of();
-  samplePlayerIndex = 0;
-
-  readonly samplePlayers = [
-    {
-      name: 'Josh',
-      color: '#FF0000',
-      id: '1',
-      gameId: 'abc',
-      position: 0,
-      sessionId: 'xyz',
-      createdAt: new Date(),
-    },
-    {
-      name: 'Leo',
-      color: '#FF00FF',
-      id: '2',
-      gameId: 'abc',
-      position: 1,
-      sessionId: 'xyz',
-      createdAt: new Date(),
-    },
-    {
-      name: 'Colin',
-      color: '#FFFF00',
-      id: '3',
-      gameId: 'abc',
-      position: 2,
-      sessionId: 'xyz',
-      createdAt: new Date(),
-    },
-  ];
-
+  readonly players = this.state.selectPlayers;
   readonly game = this.state.selectGame;
+  readonly playerId = this.state.selectPlayerId;
+  readonly activePlayerId = this.state.selectActivePlayerId;
+  readonly playerIsHost = this.state.selectPlayerIsHost;
+  readonly playerIsActive = this.state.selectPlayerIsActive;
 
-  ngAfterViewInit(): void {
-    this.restartNotifier = merge(
-      fromEvent(this.restartButtonElement.nativeElement, 'click'),
-      fromEvent(this.switchPlayerButton.nativeElement, 'click'),
-    );
+  readonly activePlayerChanges$ = toObservable(this.activePlayerId);
 
-    this.sampleTimer$ = interval(1000).pipe(
-      startWith(-1),
-      map((val) => this.sampleMax - 1000 * (val + 1)),
-      takeUntil(this.restartNotifier),
-      repeat(),
+  readonly timeRemaining$ = this.activePlayerChanges$.pipe(
+    withLatestFrom(
+      toObservable(this.game).pipe(
+        filter((gameOrUndefined) => !!gameOrUndefined),
+      ),
+    ),
+    switchMap(([_, game]) =>
+      interval(TIMER_REFRESH_PERIOD).pipe(
+        startWith(-1),
+        map((ivl) => game.turnLength - (ivl + 1) * TIMER_REFRESH_PERIOD),
+      ),
+    ),
+  );
+
+  readonly notifyGameOfTimerValueChanges = this.timeRemaining$
+    .pipe(takeUntilDestroyed())
+    .subscribe((timerValue) => {
+      this.state.dispatch(this.state.actions.timerValueChanged, {
+        timerValue,
+      });
+    });
+
+  readonly showChangePlayerButton = computed(
+    () =>
+      this.playerIsActive() || (!this.activePlayerId() && this.playerIsHost()),
+  );
+
+  readonly changePlayerButtonText = computed(() => {
+    if (this.playerIsActive()) {
+      return 'Tap to end turn';
+    }
+
+    if (!this.activePlayerId() && this.playerIsHost()) {
+      return 'Tap to start game';
+    }
+
+    return '';
+  });
+
+  onChangeActivePlayerButtonClick() {
+    this.state.dispatch(
+      this.state.actions.changePlayerButtonClicked,
+      undefined,
     );
   }
 
