@@ -1,4 +1,3 @@
-import { AsyncPipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
@@ -25,7 +24,6 @@ import { TIMER_REFRESH_PERIOD } from '../util/constants';
     HeaderComponent,
     PlayerTimerComponent,
     ButtonModule,
-    AsyncPipe,
     InputNumberModule,
     FormsModule,
   ],
@@ -43,7 +41,7 @@ import { TIMER_REFRESH_PERIOD } from '../util/constants';
             <time-rush-player-timer
               [isActive]="player.id === this.activePlayerId()"
               [maxValue]="game.turnLength"
-              [currentValue]="(timeRemaining$ | async) ?? game.turnLength"
+              [currentValue]="this.timerValue() ?? game.turnLength"
               [player]="player"
             />
           }
@@ -66,12 +64,15 @@ export class ActiveGamePageComponent {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly state = inject(StateService);
 
-  readonly players = this.state.selectPlayers;
+  readonly players = this.state.selectConnectedAndSortedPlayers;
   readonly game = this.state.selectGame;
   readonly playerId = this.state.selectPlayerId;
   readonly activePlayerId = this.state.selectActivePlayerId;
   readonly playerIsHost = this.state.selectPlayerIsHost;
   readonly playerIsActive = this.state.selectPlayerIsActive;
+  readonly timerValue = this.state.selectTimerValue;
+  readonly activePlayerIsConnected = this.state.selectActivePlayerIsConnected;
+  readonly isLocalGame = this.state.selectIsLocalGame;
 
   readonly activePlayerChanges$ = toObservable(this.activePlayerId);
 
@@ -99,7 +100,9 @@ export class ActiveGamePageComponent {
 
   readonly showChangePlayerButton = computed(
     () =>
-      this.playerIsActive() || (!this.activePlayerId() && this.playerIsHost()),
+      this.playerIsActive() ||
+      (!this.activePlayerIsConnected() && this.playerIsHost()) ||
+      this.isLocalGame(),
   );
 
   readonly changePlayerButtonText = computed(() => {
@@ -111,7 +114,7 @@ export class ActiveGamePageComponent {
       return 'Tap to start game';
     }
 
-    return '';
+    return 'Tap to change players';
   });
 
   onChangeActivePlayerButtonClick() {

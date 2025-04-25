@@ -1,14 +1,15 @@
-import { Injectable, OnDestroy } from '@angular/core';
+import { computed, Injectable, OnDestroy, signal } from '@angular/core';
 import { Client, StompSubscription } from '@stomp/stompjs';
 import {
-  Subject,
-  TimeoutError,
   catchError,
   filter,
   firstValueFrom,
+  map,
   of,
+  Subject,
   tap,
   timeout,
+  TimeoutError,
 } from 'rxjs';
 import {
   BASE_INCOMING_WS_TOPIC,
@@ -18,11 +19,7 @@ import {
 } from '../util/constants';
 import { Game } from '../util/game-types';
 import { Player } from '../util/player-types';
-import {
-  WebSocketActions,
-  WebSocketMessage,
-  WebSocketTopics,
-} from '../util/web-socket-types';
+import { WebSocketMessage, WebSocketTopics } from '../util/web-socket-types';
 
 @Injectable({
   providedIn: 'root',
@@ -32,7 +29,20 @@ export class WebSocketService implements OnDestroy {
 
   private subscriptions: StompSubscription[] = [];
 
-  readonly messages$ = new Subject<WebSocketMessage>();
+  private readonly timeSync = signal({
+    sentTimestamp: 0,
+    receivedTimestamp: 0,
+  });
+
+  readonly messageDelay = computed(
+    () => this.timeSync().receivedTimestamp - this.timeSync().sentTimestamp,
+  );
+
+  readonly messages$ = new Subject<{
+    topic: string;
+    message: WebSocketMessage;
+  }>();
+
   private readonly connectionWatcher$ = new Subject<boolean>();
 
   constructor() {
@@ -62,10 +72,7 @@ export class WebSocketService implements OnDestroy {
         timeout(CONNECTION_TIMEOUT),
         tap(() => {
           this.subscribe(gameId);
-          this.sendMessage(WebSocketTopics.Connect, {
-            action: WebSocketActions.Connect,
-            data: { playerId },
-          });
+          this.sendConnectMessageAndUpdateTimeSync(playerId);
         }),
         catchError((err) => {
           if (err instanceof TimeoutError) {
@@ -88,10 +95,39 @@ export class WebSocketService implements OnDestroy {
       this.stompClient.subscribe(
         `${BASE_INCOMING_WS_TOPIC}/${topic}`,
         (message) => {
-          this.messages$.next(JSON.parse(message.body) as WebSocketMessage);
+          this.messages$.next({
+            topic,
+            message: JSON.parse(message.body) as WebSocketMessage,
+          });
         },
       ),
     );
+  }
+
+  private async sendConnectMessageAndUpdateTimeSync(playerId: Player['id']) {
+    const playerConnectTopic = `${WebSocketTopics.Connect}/${playerId}`;
+
+    this.subscribe(playerConnectTopic);
+
+    const sentTimestamp = Date.now();
+
+    this.sendMessage(playerConnectTopic);
+
+    const ackReceived = await firstValueFrom(
+      this.messages$.pipe(
+        filter(({ topic }) => topic === playerConnectTopic),
+        timeout(CONNECTION_TIMEOUT),
+        map(() => true),
+        catchError(() => of(false)),
+      ),
+    );
+
+    if (ackReceived) {
+      this.timeSync.set({
+        sentTimestamp,
+        receivedTimestamp: Date.now(),
+      });
+    }
   }
 
   unsubscribeAll() {
@@ -102,7 +138,7 @@ export class WebSocketService implements OnDestroy {
     this.subscriptions = [];
   }
 
-  sendMessage(destination: string, message: WebSocketMessage): boolean {
+  sendMessage(destination: string, message?: WebSocketMessage): boolean {
     if (!this.stompClient.connected) {
       return false;
     }

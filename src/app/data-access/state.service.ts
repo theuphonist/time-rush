@@ -38,7 +38,7 @@ import {
   TimeRushActions,
   TimeRushState,
 } from '../util/state-types';
-import { WebSocketActions } from '../util/web-socket-types';
+import { WebSocketActions, WebSocketTopics } from '../util/web-socket-types';
 import { GameService } from './game.service';
 import { PlayerService } from './player.service';
 import { SessionStorageService } from './session-storage.service';
@@ -64,14 +64,16 @@ export class StateService {
   constructor() {
     this.webSocketService.messages$
       .pipe(takeUntilDestroyed())
-      .subscribe((message) => {
+      .subscribe(({ topic, message }) => {
+        if (topic.includes(WebSocketTopics.Connect)) {
+          return;
+        }
         if (message.action === WebSocketActions.PlayersOrGameUpdated) {
           this.dispatch(this.actions.wsPlayersOrGameUpdated, undefined);
           return;
         }
         if (message.action === WebSocketActions.TimerValueChanged) {
           const timerValue = message.data.timerValue;
-
           this.dispatch(this.actions.wsTimerValueChanged, { timerValue });
         }
       });
@@ -88,6 +90,10 @@ export class StateService {
 
   readonly selectPlayerId: Signal<TimeRushState['playerId']> = computed(
     () => this.state().playerId,
+  );
+
+  readonly selectTimerValue: Signal<TimeRushState['timerValue']> = computed(
+    () => this.state().timerValue,
   );
 
   readonly selectLoading: Signal<TimeRushState['loading']> = computed(
@@ -123,6 +129,14 @@ export class StateService {
       this.state()
         .players?.filter((player) => player.sessionId)
         ?.sort((player1, player2) => player1.position - player2.position) ?? [],
+  );
+
+  readonly selectActivePlayerIsConnected: Signal<boolean> = computed(
+    () =>
+      !!this.selectActivePlayerId() &&
+      this.selectConnectedAndSortedPlayers().some(
+        (player) => player.id === this.selectActivePlayerId(),
+      ),
   );
 
   readonly selectActivePlayerId: Signal<Player['id'] | null> = computed(
@@ -332,7 +346,10 @@ export class StateService {
         return;
       }
 
-      console.log(timerValue);
+      this.state.update((prev) => ({
+        ...prev,
+        timerValue,
+      }));
     },
 
     // game
@@ -876,6 +893,7 @@ export class StateService {
 
         this.state.update((prev) => ({
           ...prev,
+          timerValue: updatedLocalGame.turnLength,
           game: updatedLocalGame,
         }));
         return;
@@ -898,9 +916,15 @@ export class StateService {
 
       this.state.update((prev) => ({
         ...prev,
+        timerValue: updatedGame.turnLength,
         game: updatedGame,
         loading: false,
       }));
+
+      this.webSocketService.sendMessage(gameId, {
+        action: WebSocketActions.TimerValueChanged,
+        data: { timerValue: updatedGame.turnLength },
+      });
     },
     changePlayerFailed: ({ errorDetail }) => {
       this.state.update((prev) => ({
@@ -915,7 +939,7 @@ export class StateService {
       });
     },
     timerValueChanged: ({ timerValue }) => {
-      if (!this.selectPlayerIsActive()) {
+      if (!this.selectPlayerIsActive() && !this.selectIsLocalGame()) {
         return;
       }
 
@@ -925,10 +949,17 @@ export class StateService {
         return;
       }
 
-      this.webSocketService.sendMessage(gameId, {
-        action: WebSocketActions.TimerValueChanged,
-        data: { timerValue },
-      });
+      this.state.update((prev) => ({
+        ...prev,
+        timerValue,
+      }));
+
+      if (!this.selectIsLocalGame()) {
+        this.webSocketService.sendMessage(gameId, {
+          action: WebSocketActions.TimerValueChanged,
+          data: { timerValue },
+        });
+      }
     },
   };
 

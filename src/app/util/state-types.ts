@@ -66,6 +66,7 @@ export interface TimeRushState {
   playerId?: Player['id'];
   players?: Player[];
   game?: Game;
+  timerValue?: number;
   loading: boolean;
 }
 
