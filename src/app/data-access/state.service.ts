@@ -614,6 +614,182 @@ export class StateService {
         detail: errorDetail,
       });
     },
+    changeActivePlayerButtonClicked: async () => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
+      const gameId = this.selectGame()?.id;
+
+      if (!gameId) {
+        this.dispatch(this.actions.changeActivePlayerFailed, {
+          errorDetail: 'Failed to load game data.',
+        });
+        return;
+      }
+
+      const activePlayerId = this.selectActivePlayerId();
+      const connectedAndSortedPlayers = this.selectConnectedAndSortedPlayers();
+
+      const nextActivePlayerId = getNextActivePlayerId(
+        activePlayerId,
+        connectedAndSortedPlayers,
+      );
+
+      if (this.selectIsLocalGame()) {
+        const updatedLocalGame = this.gameService.updateLocalGame({
+          activePlayerId: nextActivePlayerId,
+        });
+
+        if (!updatedLocalGame) {
+          this.dispatch(this.actions.changeActivePlayerFailed, {
+            errorDetail: 'Failed to get game data from session storage.',
+          });
+          return;
+        }
+
+        this.state.update((prev) => ({
+          ...prev,
+          timerValue: updatedLocalGame.turnLength,
+          game: updatedLocalGame,
+        }));
+        return;
+      }
+
+      const updatedGame = await firstValueFrom(
+        this.gameService
+          .updateOnlineGame(gameId, {
+            activePlayerId: nextActivePlayerId,
+          })
+          .pipe(catchError(() => of(undefined))),
+      );
+
+      if (!updatedGame) {
+        this.dispatch(this.actions.changeActivePlayerFailed, {
+          errorDetail: 'Server failed to respond.',
+        });
+        return;
+      }
+
+      this.state.update((prev) => ({
+        ...prev,
+        timerValue: updatedGame.turnLength,
+        game: updatedGame,
+        loading: false,
+      }));
+
+      this.webSocketService.sendMessage(gameId, {
+        action: WebSocketActions.TimerValueChanged,
+        data: { timerValue: updatedGame.turnLength },
+      });
+    },
+    changeActivePlayerFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Change Player Error',
+        detail: errorDetail,
+      });
+    },
+    timerValueChanged: ({ timerValue }) => {
+      if (!this.selectPlayerIsActive() && !this.selectIsLocalGame()) {
+        return;
+      }
+
+      const gameId = this.selectGame()?.id;
+
+      if (!gameId) {
+        return;
+      }
+
+      this.state.update((prev) => ({
+        ...prev,
+        timerValue,
+      }));
+
+      if (!this.selectIsLocalGame()) {
+        this.webSocketService.sendMessage(gameId, {
+          action: WebSocketActions.TimerValueChanged,
+          data: { timerValue },
+        });
+      }
+    },
+    // TODO: store the current timer value, or have the active player emit
+    // the "paused" time every second. otherwise, players who disconnect
+    // before pause and reconnect after pause won't know how much time is left
+    pauseButtonClicked: async () => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: true,
+      }));
+
+      const game = this.selectGame();
+
+      if (!game) {
+        this.dispatch(this.actions.pauseGameFailed, {
+          errorDetail: 'Failed to load game data.',
+        });
+        return;
+      }
+
+      if (this.selectIsLocalGame()) {
+        const updatedLocalGame = this.gameService.updateLocalGame({
+          paused: !game.paused,
+        });
+
+        if (!updatedLocalGame) {
+          this.dispatch(this.actions.pauseGameFailed, {
+            errorDetail: 'Failed to get game data from session storage.',
+          });
+          return;
+        }
+
+        this.state.update((prev) => ({
+          ...prev,
+          loading: false,
+          game: updatedLocalGame,
+        }));
+        return;
+      }
+
+      const updatedGame = await firstValueFrom(
+        this.gameService
+          .updateOnlineGame(game.id, {
+            paused: !game.paused,
+          })
+          .pipe(catchError(() => of(undefined))),
+      );
+
+      if (!updatedGame) {
+        this.dispatch(this.actions.pauseGameFailed, {
+          errorDetail: 'Server failed to respond.',
+        });
+        return;
+      }
+
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+        game: updatedGame,
+      }));
+    },
+    pauseGameFailed: ({ errorDetail }) => {
+      this.state.update((prev) => ({
+        ...prev,
+        loading: false,
+      }));
+
+      this.messageService.add({
+        severity: 'error',
+        summary: 'Pause Game Error',
+        detail: errorDetail,
+      });
+    },
 
     // player
     createPlayerButtonClicked: async ({ playerForm }) => {
@@ -854,111 +1030,6 @@ export class StateService {
             (player) => player.id !== deletedPlayer.id,
           ),
         }));
-      }
-    },
-    changePlayerButtonClicked: async () => {
-      this.state.update((prev) => ({
-        ...prev,
-        loading: true,
-      }));
-
-      const gameId = this.selectGame()?.id;
-
-      if (!gameId) {
-        this.dispatch(this.actions.changePlayerFailed, {
-          errorDetail: 'Failed to load game data.',
-        });
-        return;
-      }
-
-      const activePlayerId = this.selectActivePlayerId();
-      const connectedAndSortedPlayers = this.selectConnectedAndSortedPlayers();
-
-      const nextActivePlayerId = getNextActivePlayerId(
-        activePlayerId,
-        connectedAndSortedPlayers,
-      );
-
-      if (this.selectIsLocalGame()) {
-        const updatedLocalGame = this.gameService.updateLocalGame({
-          activePlayerId: nextActivePlayerId,
-        });
-
-        if (!updatedLocalGame) {
-          this.dispatch(this.actions.changePlayerFailed, {
-            errorDetail: 'Failed to get game data from session storage.',
-          });
-          return;
-        }
-
-        this.state.update((prev) => ({
-          ...prev,
-          timerValue: updatedLocalGame.turnLength,
-          game: updatedLocalGame,
-        }));
-        return;
-      }
-
-      const updatedGame = await firstValueFrom(
-        this.gameService
-          .updateOnlineGame(gameId, {
-            activePlayerId: nextActivePlayerId,
-          })
-          .pipe(catchError(() => of(undefined))),
-      );
-
-      if (!updatedGame) {
-        this.dispatch(this.actions.changePlayerFailed, {
-          errorDetail: 'Server failed to respond.',
-        });
-        return;
-      }
-
-      this.state.update((prev) => ({
-        ...prev,
-        timerValue: updatedGame.turnLength,
-        game: updatedGame,
-        loading: false,
-      }));
-
-      this.webSocketService.sendMessage(gameId, {
-        action: WebSocketActions.TimerValueChanged,
-        data: { timerValue: updatedGame.turnLength },
-      });
-    },
-    changePlayerFailed: ({ errorDetail }) => {
-      this.state.update((prev) => ({
-        ...prev,
-        loading: false,
-      }));
-
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Change Player Error',
-        detail: errorDetail,
-      });
-    },
-    timerValueChanged: ({ timerValue }) => {
-      if (!this.selectPlayerIsActive() && !this.selectIsLocalGame()) {
-        return;
-      }
-
-      const gameId = this.selectGame()?.id;
-
-      if (!gameId) {
-        return;
-      }
-
-      this.state.update((prev) => ({
-        ...prev,
-        timerValue,
-      }));
-
-      if (!this.selectIsLocalGame()) {
-        this.webSocketService.sendMessage(gameId, {
-          action: WebSocketActions.TimerValueChanged,
-          data: { timerValue },
-        });
       }
     },
   };

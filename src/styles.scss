@@ -43,3 +43,15 @@ body {
 .p-confirm-dialog-message {
   margin-left: 0;
 }
+
+.left-screen {
+  left: var(--base-x-padding-margin);
+}
+
+.right-screen {
+  right: var(--base-x-padding-margin);
+}
+
+.bottom-screen {
+  bottom: var(--base-x-padding-margin);
+}

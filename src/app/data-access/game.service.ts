@@ -23,6 +23,7 @@ export class GameService {
     return this.apiService.post<Game>(Endpoints.GAME, {
       ...gameForm,
       turnLength: toMilliseconds(gameForm.turnLength, gameForm.turnLengthUnits),
+      paused: false,
     });
   }
 
@@ -59,6 +60,7 @@ export class GameService {
       turnLength: turnLengthInMs,
       joinCode: LOCAL_JOIN_CODE,
       status: GameStatuses.Local,
+      paused: false,
       hostPlayerId: null,
       activePlayerId: null,
       createdAt: LOCAL_CREATED_AT,

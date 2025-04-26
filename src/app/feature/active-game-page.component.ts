@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ConfirmationService } from 'primeng/api';
@@ -8,8 +8,12 @@ import {
   filter,
   interval,
   map,
+  merge,
+  of,
   startWith,
   switchMap,
+  takeUntil,
+  tap,
   withLatestFrom,
 } from 'rxjs';
 import { StateService } from '../data-access/state.service';
@@ -38,19 +42,38 @@ import { TIMER_REFRESH_PERIOD } from '../util/constants';
       @if (game(); as game) {
         <div class="flex flex-column gap-2">
           @for (player of players(); track player.id) {
-            <time-rush-player-timer
-              [isActive]="player.id === this.activePlayerId()"
-              [maxValue]="game.turnLength"
-              [currentValue]="this.timerValue() ?? game.turnLength"
-              [player]="player"
-            />
+            <div class="flex gap-3">
+              <time-rush-player-timer
+                class="flex-grow-1"
+                [isActive]="player.id === this.activePlayerId()"
+                [maxValue]="game.turnLength"
+                [currentValue]="this.timerValue() ?? game.turnLength"
+                [player]="player"
+                [paused]="game.paused"
+              />
+              @if (allowPauseButton() && player.id === activePlayerId()) {
+                <p-button
+                  styleClass="h-full"
+                  severity="secondary"
+                  [outlined]="false"
+                  (click)="onPauseButtonClick()"
+                  ariaLabel="Pause game"
+                >
+                  <i
+                    [class]="
+                      'font-bold text-primary text-2xl pi ' +
+                      (game.paused ? 'pi-play' : 'pi-pause')
+                    "
+                  ></i>
+                </p-button>
+              }
+            </div>
           }
         </div>
         @if (showChangePlayerButton()) {
           <button
-            class="p-button w-full h-9rem mt-7 flex justify-content-center font-bold"
+            class="p-button absolute left-screen right-screen bottom-screen h-15rem flex justify-content-center font-bold"
             (click)="onChangeActivePlayerButtonClick()"
-            #switchPlayerButton
           >
             {{ changePlayerButtonText() }}
           </button>
@@ -76,16 +99,37 @@ export class ActiveGamePageComponent {
 
   readonly activePlayerChanges$ = toObservable(this.activePlayerId);
 
-  readonly timeRemaining$ = this.activePlayerChanges$.pipe(
+  readonly paused = computed(() => !!this.game()?.paused);
+  readonly paused$ = toObservable(this.paused);
+  readonly nextInitialInterval = signal(0);
+
+  readonly timerRestartNotifier$ = merge(
+    this.activePlayerChanges$.pipe(map(() => 0)),
+    this.paused$.pipe(
+      filter((paused) => !paused),
+      switchMap(() => of(this.nextInitialInterval())),
+    ),
+  );
+
+  readonly timeRemaining$ = this.timerRestartNotifier$.pipe(
     withLatestFrom(
       toObservable(this.game).pipe(
         filter((gameOrUndefined) => !!gameOrUndefined),
       ),
     ),
-    switchMap(([_, game]) =>
+    tap(console.log),
+    switchMap(([initialInterval, game]) =>
       interval(TIMER_REFRESH_PERIOD).pipe(
         startWith(-1),
-        map((ivl) => game.turnLength - (ivl + 1) * TIMER_REFRESH_PERIOD),
+        map((ivl) => ivl + initialInterval + 1),
+        tap((adjustedInterval) =>
+          this.nextInitialInterval.set(adjustedInterval + 1),
+        ),
+        map(
+          (adjustedInterval) =>
+            game.turnLength - adjustedInterval * TIMER_REFRESH_PERIOD,
+        ),
+        takeUntil(this.paused$.pipe(filter((paused) => paused))),
       ),
     ),
   );
@@ -105,6 +149,10 @@ export class ActiveGamePageComponent {
       this.isLocalGame(),
   );
 
+  readonly allowPauseButton = computed(
+    () => this.playerIsHost() || this.isLocalGame(),
+  );
+
   readonly changePlayerButtonText = computed(() => {
     if (this.playerIsActive()) {
       return 'Tap to end turn';
@@ -119,9 +167,13 @@ export class ActiveGamePageComponent {
 
   onChangeActivePlayerButtonClick() {
     this.state.dispatch(
-      this.state.actions.changePlayerButtonClicked,
+      this.state.actions.changeActivePlayerButtonClicked,
       undefined,
     );
+  }
+
+  onPauseButtonClick() {
+    this.state.dispatch(this.state.actions.pauseButtonClicked, undefined);
   }
 
   onBackButtonClick() {

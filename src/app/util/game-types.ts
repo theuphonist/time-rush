@@ -6,6 +6,7 @@ export interface Game {
   turnLength: number;
   joinCode: string;
   status: GameStatuses;
+  paused: boolean;
   hostPlayerId: Player['id'] | null;
   activePlayerId: Player['id'] | null;
   createdAt: Date;

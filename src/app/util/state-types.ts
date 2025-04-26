@@ -36,9 +36,11 @@ export interface TimeRushActions {
   joinGameFailed: ActionFunction<{
     errorDetail: string;
   }>;
-  changePlayerButtonClicked: ActionFunction<void>;
-  changePlayerFailed: ActionFunction<{ errorDetail: string }>;
+  changeActivePlayerButtonClicked: ActionFunction<void>;
+  changeActivePlayerFailed: ActionFunction<{ errorDetail: string }>;
   timerValueChanged: ActionFunction<{ timerValue: number }>;
+  pauseButtonClicked: ActionFunction<void>;
+  pauseGameFailed: ActionFunction<{ errorDetail: string }>;
 
   //players
   createPlayerButtonClicked: ActionFunction<{

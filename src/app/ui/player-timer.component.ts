@@ -32,6 +32,9 @@ import { TimeWithColonsPipe } from '../util/time-with-colons.pipe';
               'm-0 text-' + (player().color | fontColorClassFromBackground)
             "
           >
+            @if (paused()) {
+              <i class="text-sm font-bold pi pi-pause"></i>
+            }
             {{ currentValue() | timeWithColons }}
           </p>
         }
@@ -44,6 +47,7 @@ export class PlayerTimerComponent {
   readonly maxValue = input.required<number>(); // in ms
   readonly currentValue = input.required<number>(); // in ms
   readonly player = input.required<Player>();
+  readonly paused = input.required<boolean>();
 
   readonly outerStyle = computed(() => ({
     width: this.isActive() ? '100%' : '50%',
