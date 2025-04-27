@@ -117,7 +117,6 @@ export class ActiveGamePageComponent {
         filter((gameOrUndefined) => !!gameOrUndefined),
       ),
     ),
-    tap(console.log),
     switchMap(([initialInterval, game]) =>
       interval(TIMER_REFRESH_PERIOD).pipe(
         startWith(-1),
