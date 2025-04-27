@@ -1,13 +1,13 @@
 // API
-// export const API_URL = 'https://api.timerush.app:8443';
-export const API_URL = 'http://192.168.1.110:8080'; // uncomment if running backend locally
+export const API_URL = 'https://api.timerush.app:8443';
+// export const API_URL = 'http://192.168.1.110:8080'; // uncomment if running backend locally
 export const COMMON_HEADERS = {
   'Content-Type': 'application/json',
 };
 
 // WebSockets
-// export const WS_URL = 'wss://api.timerush.app:8443/messaging';
-export const WS_URL = 'http://192.168.1.110:8080/messaging'; // uncomment if running backend locally
+export const WS_URL = 'wss://api.timerush.app:8443/messaging';
+// export const WS_URL = 'http://192.168.1.110:8080/messaging'; // uncomment if running backend locally
 export const BASE_INCOMING_WS_TOPIC = '/topic';
 export const BASE_OUTGOING_WS_TOPIC = '/timerush';
 export const MAX_SUBSCRIBE_RETRIES = 5;
