@@ -17,6 +17,7 @@ import {
   withLatestFrom,
 } from 'rxjs';
 import { StateService } from '../data-access/state.service';
+import { WebSocketService } from '../data-access/web-socket.service';
 import { HeaderComponent } from '../ui/header.component';
 import { PlayerTimerComponent } from '../ui/player-timer.component';
 import { TIMER_REFRESH_PERIOD } from '../util/constants';
@@ -70,6 +71,7 @@ import { TIMER_REFRESH_PERIOD } from '../util/constants';
             </div>
           }
         </div>
+        <p-button class="mt-3" (click)="ws.disconnect()">Disconnect</p-button>
         @if (showChangePlayerButton()) {
           <button
             class="p-button absolute left-screen right-screen bottom-screen h-15rem flex justify-content-center font-bold"
@@ -86,6 +88,7 @@ import { TIMER_REFRESH_PERIOD } from '../util/constants';
 export class ActiveGamePageComponent {
   private readonly confirmationService = inject(ConfirmationService);
   private readonly state = inject(StateService);
+  readonly ws = inject(WebSocketService);
 
   readonly players = this.state.selectConnectedAndSortedPlayers;
   readonly game = this.state.selectGame;
