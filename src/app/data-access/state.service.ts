@@ -514,21 +514,9 @@ export class StateService {
 
       const playerId = this.state().playerId;
 
-      if (!playerId) {
-        this.state.update((prev) => ({
-          ...prev,
-          playerId: undefined,
-          game: undefined,
-          players: undefined,
-          loading: false,
-        }));
-
-        this.webSocketService.disconnect();
-        this.router.navigate(['/']);
-        return;
+      if (playerId) {
+        await firstValueFrom(this.playerService.deleteOnlinePlayer(playerId));
       }
-
-      await firstValueFrom(this.playerService.deleteOnlinePlayer(playerId));
 
       this.state.update((prev) => ({
         ...prev,

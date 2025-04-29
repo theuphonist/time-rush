@@ -1,4 +1,4 @@
-import { computed, Injectable, OnDestroy, signal } from '@angular/core';
+import { computed, Injectable, signal } from '@angular/core';
 import { Client, StompSubscription } from '@stomp/stompjs';
 import {
   catchError,
@@ -24,7 +24,7 @@ import { WebSocketMessage, WebSocketTopics } from '../util/web-socket-types';
 @Injectable({
   providedIn: 'root',
 })
-export class WebSocketService implements OnDestroy {
+export class WebSocketService {
   private readonly stompClient: Client;
 
   private subscriptions: StompSubscription[] = [];
@@ -51,10 +51,6 @@ export class WebSocketService implements OnDestroy {
       onConnect: () => this.connectionWatcher$.next(true),
       onDisconnect: () => this.connectionWatcher$.next(false),
     });
-  }
-
-  ngOnDestroy() {
-    this.disconnect();
   }
 
   async connect(playerId: Player['id'], gameId: Game['id']): Promise<boolean> {
