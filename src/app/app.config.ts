@@ -13,10 +13,6 @@ import { ConfirmationService, MessageService } from 'primeng/api';
 import { routes } from './app.routes';
 import { StateService } from './data-access/state.service';
 
-function notifyStateOfInitialization(state: StateService) {
-  return (): void => state.dispatch(state.actions.appInitialized, undefined);
-}
-
 export const appConfig: ApplicationConfig = {
   providers: [
     // PrimeNG
@@ -26,7 +22,20 @@ export const appConfig: ApplicationConfig = {
     // Initialization
     {
       provide: APP_INITIALIZER,
-      useFactory: notifyStateOfInitialization,
+      useFactory: (state: StateService) => {
+        return (): void => {
+          // initialize app on startup
+          state.dispatch(state.actions.appInitialized, undefined);
+
+          // re-initialize app when user leaves and comes back. some browsers
+          // won't automatically initialize on sleep/wake, so we force it here
+          document.addEventListener('visibilitychange', () => {
+            if (!document.hidden) {
+              state.dispatch(state.actions.appInitialized, undefined);
+            }
+          });
+        };
+      },
       deps: [StateService],
       multi: true,
     },
