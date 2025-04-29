@@ -58,6 +58,10 @@ export class WebSocketService implements OnDestroy {
   }
 
   async connect(playerId: Player['id'], gameId: Game['id']): Promise<boolean> {
+    if (this.stompClient.connected) {
+      return true;
+    }
+
     this.stompClient.activate();
 
     setTimeout(() => {

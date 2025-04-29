@@ -285,10 +285,9 @@ export class StateService {
       this.router.navigate([GameStatusToRoute[game.status]]);
     },
     initializeAppFailed: ({ errorDetail }) => {
-      this.state.update((prev) => ({
-        ...prev,
+      this.state.set({
         loading: false,
-      }));
+      });
 
       this.webSocketService.disconnect();
 
