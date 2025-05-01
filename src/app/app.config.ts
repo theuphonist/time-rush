@@ -26,14 +26,6 @@ export const appConfig: ApplicationConfig = {
         return (): void => {
           // initialize app on startup
           state.dispatch(state.actions.appInitialized, undefined);
-
-          // re-initialize app when user leaves and comes back. some browsers
-          // won't automatically initialize on sleep/wake, so we force it here
-          document.addEventListener('visibilitychange', () => {
-            if (!document.hidden) {
-              state.dispatch(state.actions.appInitialized, undefined);
-            }
-          });
         };
       },
       deps: [StateService],

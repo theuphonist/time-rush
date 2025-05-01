@@ -216,11 +216,12 @@ export class StateService {
       }));
     },
     onlinePlayerIdRetrievedFromStorage: async ({ playerId }) => {
-      // retrieve player and game data
+      // erros are deliberately ignored on the Observable returned from
+      // getOnlinePlayerById here.  for some reason, an error is emitted
+      // when running Safari on iOS even when the data is successfully
+      // retrieved
       const player = await firstValueFrom(
-        this.playerService
-          .getOnlinePlayerById(playerId)
-          .pipe(catchError(() => of(undefined))),
+        this.playerService.getOnlinePlayerById(playerId),
       );
 
       if (!player?.gameId) {
@@ -263,7 +264,6 @@ export class StateService {
         return;
       }
 
-      // establish WS connection
       const webSocketConnectionEstablished =
         await this.webSocketService.connect(player.id, game.id);
 
@@ -293,7 +293,7 @@ export class StateService {
 
       this.messageService.add({
         severity: 'error',
-        summary: 'Initializion Error',
+        summary: 'Initialization Error',
         detail: errorDetail,
       });
 
