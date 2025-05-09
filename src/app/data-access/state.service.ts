@@ -216,12 +216,11 @@ export class StateService {
       }));
     },
     onlinePlayerIdRetrievedFromStorage: async ({ playerId }) => {
-      // erros are deliberately ignored on the Observable returned from
-      // getOnlinePlayerById here.  for some reason, an error is emitted
-      // when running Safari on iOS even when the data is successfully
-      // retrieved
+      // retrieve player and game data
       const player = await firstValueFrom(
-        this.playerService.getOnlinePlayerById(playerId),
+        this.playerService
+          .getOnlinePlayerById(playerId)
+          .pipe(catchError(() => of(undefined))),
       );
 
       if (!player?.gameId) {
@@ -263,6 +262,11 @@ export class StateService {
         });
         return;
       }
+
+      // on iOS Safari (and possibly Android devices?), the websocket connection
+      // isn't closed properly after screen lock.  calling disconnect() here ensures
+      // the socket is closed before attempting to open it again
+      this.webSocketService.disconnect();
 
       const webSocketConnectionEstablished =
         await this.webSocketService.connect(player.id, game.id);
